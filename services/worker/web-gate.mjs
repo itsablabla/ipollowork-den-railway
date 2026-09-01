@@ -257,8 +257,15 @@ function isPublicPath(pathname) {
 }
 
 function proxy(req, res) {
+  const viaCookie = cookieValid(readCookie(req));
   const headers = { ...req.headers };
   delete headers.cookie; // never leak the gate cookie upstream
+  // /env/*, /authorization-services/* and similar are "host-token" routes that
+  // only accept the raw host token header (the UI sends it for loopback servers
+  // only). The password gate is the operator boundary here, so add it.
+  if (viaCookie && HOST_TOKEN && !headers["x-ipollowork-host-token"]) {
+    headers["x-ipollowork-host-token"] = HOST_TOKEN;
+  }
   headers["x-forwarded-proto"] = headers["x-forwarded-proto"] ?? "https";
   const upstream = http.request(
     { host: "127.0.0.1", port: UPSTREAM_PORT, method: req.method, path: req.url, headers },
