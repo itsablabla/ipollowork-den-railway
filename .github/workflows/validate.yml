@@ -22,7 +22,7 @@ jobs:
       - name: Validate railway.json files against the Railway schema
         run: |
           curl -fsSL https://railway.com/railway.schema.json -o /tmp/railway.schema.json
-          npx --yes ajv-cli@5 validate --spec=draft7 -s /tmp/railway.schema.json -d "services/*/railway.json" --strict=false
+          npx --yes ajv-cli@5 validate --spec=draft2020 -s /tmp/railway.schema.json -d "services/*/railway.json" --strict=false
       - name: Shell syntax + shellcheck
         run: |
           for f in services/*/entrypoint.sh scripts/*.sh; do sh -n "$f"; done

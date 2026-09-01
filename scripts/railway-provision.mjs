@@ -164,6 +164,25 @@ for (const svc of services) {
   }
 }
 
+// 2b. Re-apply every service's variables now that all services and domains
+// exist. Railway resolves ${{other-service.VAR}} references against the
+// services that exist when the variable is written; a reference to a service
+// created later renders as an empty string until the variable is saved again.
+for (const svc of services) {
+  const { id } = created[svc.name];
+  const variables = {};
+  for (const [k, v] of Object.entries(svc.variables ?? {})) {
+    if (!/\$\{\{\s*[A-Za-z0-9_-]+\./.test(v.defaultValue ?? "")) continue; // only cross-service refs
+    variables[k] = v.defaultValue;
+  }
+  if (!Object.keys(variables).length) continue;
+  await gql(
+    `mutation variableCollectionUpsert($input: VariableCollectionUpsertInput!) { variableCollectionUpsert(input: $input) }`,
+    { input: { projectId: project.id, environmentId, serviceId: id, variables, skipDeploys: true } },
+  );
+  console.log(`  refreshed cross-service references on ${svc.name}: ${Object.keys(variables).join(", ")}`);
+}
+
 // 3. deploy in dependency order (mysql first so den-api's retry loop is short)
 for (const svc of services) {
   const { id } = created[svc.name];

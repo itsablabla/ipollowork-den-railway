@@ -1,0 +1,338 @@
+{
+ "data": {
+  "template": {
+   "serializedConfig": {
+    "buckets": {},
+    "services": {
+     "03b05be5-dd3d-409b-9765-683b467f3693": {
+      "icon": "https://devicons.railway.app/i/nodejs.svg",
+      "name": "den-api",
+      "deploy": {
+       "startCommand": "/bin/sh -c \"cd /app/ee/packages/den-db && n=0; until node ./dist/scripts/bootstrap.js || node --import tsx ./dist/scripts/bootstrap.js; do n=$((n+1)); if [ $n -ge 60 ]; then echo 'den-db bootstrap failed after 60 attempts' >&2; exit 1; fi; echo 'waiting for mysql / retrying den-db bootstrap'; sleep 3; done; cd /app && exec docker-entrypoint.sh node /app/ee/apps/den-api/dist/main.js\"",
+       "healthcheckPath": "/health",
+       "restartPolicyType": "ON_FAILURE",
+       "restartPolicyMaxRetries": 10
+      },
+      "source": {
+       "image": "ghcr.io/different-ai/openwork-den-api:0.18.40"
+      },
+      "variables": {
+       "CI": {
+        "isOptional": false
+       },
+       "PORT": {
+        "isOptional": false
+       },
+       "DB_MODE": {
+        "isOptional": false
+       },
+       "NODE_ENV": {
+        "isOptional": false
+       },
+       "SMTP_PORT": {
+        "isOptional": false
+       },
+       "EMAIL_FROM": {
+        "isOptional": false
+       },
+       "SMTP_SECURE": {
+        "isOptional": false
+       },
+       "CORS_ORIGINS": {
+        "isOptional": false,
+        "defaultValue": "https://${{den-web.RAILWAY_PUBLIC_DOMAIN}},https://${{RAILWAY_PUBLIC_DOMAIN}}"
+       },
+       "DATABASE_URL": {
+        "isOptional": false,
+        "defaultValue": "${{mysql.MYSQL_URL}}"
+       },
+       "DEN_BASE_URL": {
+        "isOptional": false,
+        "defaultValue": "https://${{den-web.RAILWAY_PUBLIC_DOMAIN}}"
+       },
+       "DEN_ORG_MODE": {
+        "isOptional": false
+       },
+       "BETTER_AUTH_URL": {
+        "isOptional": false,
+        "defaultValue": "https://${{den-web.RAILWAY_PUBLIC_DOMAIN}}"
+       },
+       "DAYTONA_API_URL": {
+        "isOptional": false
+       },
+       "PROVISIONER_MODE": {
+        "isOptional": false
+       },
+       "OPENWORK_DEV_MODE": {
+        "isOptional": false
+       },
+       "BETTER_AUTH_SECRET": {
+        "isOptional": false
+       },
+       "DEN_API_PUBLIC_URL": {
+        "isOptional": false,
+        "defaultValue": "https://${{RAILWAY_PUBLIC_DOMAIN}}"
+       },
+       "DEN_SINGLE_ORG_NAME": {
+        "isOptional": false
+       },
+       "DEN_SINGLE_ORG_SLUG": {
+        "isOptional": false
+       },
+       "WORKER_URL_TEMPLATE": {
+        "isOptional": false,
+        "defaultValue": "https://${{worker.RAILWAY_PUBLIC_DOMAIN}}"
+       },
+       "DEN_MCP_RESOURCE_URL": {
+        "isOptional": false,
+        "defaultValue": "https://${{RAILWAY_PUBLIC_DOMAIN}}/mcp"
+       },
+       "DEN_DB_ENCRYPTION_KEY": {
+        "isOptional": false
+       },
+       "DEN_DASHBOARDS_ENABLED": {
+        "isOptional": false
+       },
+       "DEN_AUTOMATIONS_ENABLED": {
+        "isOptional": false
+       },
+       "DEN_MCP_CLAIM_NAMESPACE": {
+        "isOptional": false,
+        "defaultValue": "https://${{den-web.RAILWAY_PUBLIC_DOMAIN}}"
+       },
+       "DEN_OPENWORK_WEB_ENABLED": {
+        "isOptional": false
+       },
+       "DEN_DESKTOP_RELEASES_MODE": {
+        "isOptional": false
+       },
+       "DEN_OBSERVABILITY_BACKEND": {
+        "isOptional": false
+       },
+       "DEN_ALLOW_PRIVATE_MCP_URLS": {
+        "isOptional": false
+       },
+       "DEN_BOOTSTRAP_ADMIN_EMAILS": {
+        "isOptional": false,
+        "defaultValue": "${{DEN_SINGLE_ORG_OWNER_EMAILS}}"
+       },
+       "DEN_SINGLE_ORG_OWNER_EMAILS": {
+        "isOptional": false
+       },
+       "DEN_REQUIRE_EMAIL_VERIFICATION": {
+        "isOptional": false
+       },
+       "DEN_AUTOMATIONS_RUNTIME_ENABLED": {
+        "isOptional": false
+       },
+       "DEN_BETTER_AUTH_TRUSTED_ORIGINS": {
+        "isOptional": false,
+        "defaultValue": "https://${{den-web.RAILWAY_PUBLIC_DOMAIN}},https://${{RAILWAY_PUBLIC_DOMAIN}}"
+       },
+       "DEN_INSTALL_LINKS_GATING_ENABLED": {
+        "isOptional": false
+       },
+       "DEN_SINGLE_ORG_ALLOW_PUBLIC_SIGNUP": {
+        "isOptional": false
+       },
+       "DEN_PASSWORD_BREACH_SCREENING_ENABLED": {
+        "isOptional": false
+       },
+       "WORKER_PROVISIONING_RECONCILE_STALE_MS": {
+        "isOptional": false
+       },
+       "WORKER_PROVISIONING_RECONCILE_BATCH_SIZE": {
+        "isOptional": false
+       },
+       "WORKER_PROVISIONING_RECONCILE_INTERVAL_MS": {
+        "isOptional": false
+       }
+      },
+      "networking": {
+       "serviceDomains": {
+        "<hasDomain>:8788": {
+         "port": 8788
+        }
+       }
+      }
+     },
+     "148bf185-fecb-4b5e-9f34-eda2ec16a2b6": {
+      "icon": "https://devicons.railway.app/i/nextjs.svg",
+      "name": "den-web",
+      "deploy": {
+       "startCommand": "/bin/sh -c \"exec /app/ee/apps/den-web/node_modules/.bin/next start --hostname :: --port ${PORT:-3005}\"",
+       "healthcheckPath": "/api/health",
+       "restartPolicyType": "ON_FAILURE",
+       "restartPolicyMaxRetries": 10
+      },
+      "source": {
+       "image": "ghcr.io/different-ai/openwork-den-web:0.18.40"
+      },
+      "variables": {
+       "PORT": {
+        "isOptional": false
+       },
+       "NODE_ENV": {
+        "isOptional": false
+       },
+       "DEN_API_BASE": {
+        "isOptional": false,
+        "defaultValue": "http://${{den-api.RAILWAY_PRIVATE_DOMAIN}}:8788"
+       },
+       "DEN_BASE_URL": {
+        "isOptional": false,
+        "defaultValue": "https://${{RAILWAY_PUBLIC_DOMAIN}}"
+       },
+       "DEN_ORG_MODE": {
+        "isOptional": false,
+        "defaultValue": "${{den-api.DEN_ORG_MODE}}"
+       },
+       "DEN_AUTH_ORIGIN": {
+        "isOptional": false,
+        "defaultValue": "https://${{RAILWAY_PUBLIC_DOMAIN}}"
+       },
+       "DEN_API_PUBLIC_URL": {
+        "isOptional": false,
+        "defaultValue": "https://${{den-api.RAILWAY_PUBLIC_DOMAIN}}"
+       },
+       "DEN_SINGLE_ORG_NAME": {
+        "isOptional": false,
+        "defaultValue": "${{den-api.DEN_SINGLE_ORG_NAME}}"
+       },
+       "DEN_SINGLE_ORG_SLUG": {
+        "isOptional": false,
+        "defaultValue": "${{den-api.DEN_SINGLE_ORG_SLUG}}"
+       },
+       "DEN_WEB_PUBLIC_ORIGIN": {
+        "isOptional": false,
+        "defaultValue": "https://${{RAILWAY_PUBLIC_DOMAIN}}"
+       },
+       "DEN_AUTH_FALLBACK_BASE": {
+        "isOptional": false,
+        "defaultValue": "http://${{den-api.RAILWAY_PRIVATE_DOMAIN}}:8788"
+       },
+       "DEN_SINGLE_ORG_ALLOW_PUBLIC_SIGNUP": {
+        "isOptional": false,
+        "defaultValue": "${{den-api.DEN_SINGLE_ORG_ALLOW_PUBLIC_SIGNUP}}"
+       },
+       "DEN_WEB_OPENWORK_AUTH_CALLBACK_URL": {
+        "isOptional": false,
+        "defaultValue": "https://${{RAILWAY_PUBLIC_DOMAIN}}"
+       },
+       "NEXT_PUBLIC_DEN_OBSERVABILITY_BACKEND": {
+        "isOptional": false
+       }
+      },
+      "networking": {
+       "serviceDomains": {
+        "<hasDomain>:3005": {
+         "port": 3005
+        }
+       }
+      }
+     },
+     "557f3992-1d31-460a-ac3f-7d0e4bdde196": {
+      "icon": "https://devicons.railway.app/i/docker.svg",
+      "name": "worker",
+      "deploy": {
+       "startCommand": null,
+       "healthcheckPath": "/health",
+       "restartPolicyType": "ON_FAILURE",
+       "restartPolicyMaxRetries": 10
+      },
+      "source": {
+       "image": "ghcr.io/itsablabla/ipollowork-worker:0.18.40"
+      },
+      "variables": {
+       "PORT": {
+        "isOptional": false
+       },
+       "OPENWORK_PORT": {
+        "isOptional": false
+       },
+       "OPENWORK_TOKEN": {
+        "isOptional": false
+       },
+       "RAILWAY_RUN_UID": {
+        "isOptional": false
+       },
+       "OPENWORK_DATA_DIR": {
+        "isOptional": false
+       },
+       "OPENWORK_WORKSPACE": {
+        "isOptional": false
+       },
+       "OPENWORK_HOST_TOKEN": {
+        "isOptional": false
+       },
+       "OPENWORK_LOG_FORMAT": {
+        "isOptional": false
+       },
+       "OPENWORK_SIDECAR_DIR": {
+        "isOptional": false
+       },
+       "OPENWORK_CORS_ORIGINS": {
+        "isOptional": false
+       },
+       "OPENWORK_APPROVAL_MODE": {
+        "isOptional": false
+       }
+      },
+      "networking": {
+       "serviceDomains": {
+        "<hasDomain>:8787": {
+         "port": 8787
+        }
+       }
+      },
+      "volumeMounts": {
+       "557f3992-1d31-460a-ac3f-7d0e4bdde196": {
+        "mountPath": "/data"
+       }
+      }
+     },
+     "9bfdff31-d636-4df2-a20b-6e0f4f14199a": {
+      "icon": "https://devicons.railway.app/i/mysql.svg",
+      "name": "mysql",
+      "deploy": {
+       "startCommand": "docker-entrypoint.sh mysqld --innodb-use-native-aio=0 --disable-log-bin --performance_schema=0 --innodb-buffer-pool-size=256M",
+       "healthcheckPath": null,
+       "restartPolicyType": "ON_FAILURE",
+       "restartPolicyMaxRetries": 10
+      },
+      "source": {
+       "image": "mysql:8.4"
+      },
+      "variables": {
+       "MYSQLHOST": {
+        "isOptional": false,
+        "defaultValue": "${{RAILWAY_PRIVATE_DOMAIN}}"
+       },
+       "MYSQLPORT": {
+        "isOptional": false
+       },
+       "MYSQLUSER": {
+        "isOptional": false
+       },
+       "MYSQL_URL": {
+        "isOptional": false,
+        "defaultValue": "mysql://${{MYSQLUSER}}:${{MYSQL_ROOT_PASSWORD}}@${{RAILWAY_PRIVATE_DOMAIN}}:3306/${{MYSQL_DATABASE}}"
+       },
+       "MYSQL_DATABASE": {
+        "isOptional": false
+       },
+       "MYSQL_ROOT_PASSWORD": {
+        "isOptional": false
+       }
+      },
+      "volumeMounts": {
+       "9bfdff31-d636-4df2-a20b-6e0f4f14199a": {
+        "mountPath": "/var/lib/mysql"
+       }
+      }
+     }
+    }
+   }
+  }
+ }
+}

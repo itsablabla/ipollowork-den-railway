@@ -64,6 +64,27 @@ The CLI cannot set every setting (start command, root directory), so the script 
 
 Open [railway.com/workspace/templates](https://railway.com/workspace/templates) → New Template → add the four services exactly as listed in [`template/variables.md`](template/variables.md) (source, start command, healthcheck, volume, variables). Use the `${{secret(...)}}` expressions as-is so each deploy gets fresh secrets.
 
+## Live deployment (2026-09-01)
+
+Provisioned from this repo with `scripts/railway-provision.mjs` into Railway workspace "No AI Allowed":
+
+| Service | URL | Health |
+|---|---|---|
+| den-web | https://den-web-production.up.railway.app | `/api/health` and `/api/ready` → ok (configuration + upstream) |
+| den-api | https://den-api-production.up.railway.app | `/health` → ok 0.18.40; `/.well-known/oauth-protected-resource` advertises `/mcp` |
+| worker | https://worker-production-3eb3.up.railway.app | `/health` → ok 0.18.40 / OpenCode 1.18.18 |
+| mysql | private (`mysql.railway.internal:3306`) | migrations applied by den-api |
+
+Project: https://railway.com/project/ca86ac98-c940-47a8-be16-ca8e06782fcf. Generated template: code `ixuwbi` → https://railway.com/deploy/ixuwbi (unpublished; see below).
+
+### Finishing the template in the composer
+
+`templateGenerate` keeps `${{...}}` references (service wiring, `RAILWAY_PUBLIC_DOMAIN`, `mysql.MYSQL_URL`) but drops literal defaults and secrets, so the generated template currently asks for every literal variable. Open the template at https://railway.com/workspace/templates and paste the defaults from [`template/variables.md`](template/variables.md); for secrets use the `${{secret(...)}}` expressions listed there. The API snapshot of the generated template is saved at [`template/generated-by-railway.ixuwbi.json`](template/generated-by-railway.ixuwbi.json) for comparison. Publishing is `templatePublish` or the Publish button.
+
+### Lesson baked into the script
+
+Railway resolves `${{other-service.VAR}}` against the services that exist when a variable is written; a reference to a service created later renders as an empty string until the variable is saved again. The provisioner therefore re-applies all cross-service references after every service and domain exists, then deploys in order mysql → den-api → den-web → worker.
+
 ## First run
 
 1. Wait for `mysql` → `den-api` → `den-web` → `worker` to go healthy. `den-api`'s start command retries the `den-db` migration until MySQL accepts connections, so a cold template deploy self-heals.
