@@ -1,0 +1,514 @@
+{
+  "services": {
+    "2f648d92-206f-4fa5-a82e-8e803164f4ae": {
+      "name": "mysql",
+      "icon": "https://devicons.railway.app/i/mysql.svg",
+      "build": {},
+      "source": {
+        "image": "mysql:8.4"
+      },
+      "deploy": {
+        "startCommand": "docker-entrypoint.sh mysqld --innodb-use-native-aio=0 --disable-log-bin --performance_schema=0 --innodb-buffer-pool-size=256M",
+        "healthcheckPath": null,
+        "requiredMountPath": "/var/lib/mysql"
+      },
+      "variables": {
+        "MYSQL_ROOT_PASSWORD": {
+          "defaultValue": "${{secret(32, \"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789\")}}",
+          "description": "Root password for the Den control-plane database.",
+          "isOptional": false
+        },
+        "MYSQL_DATABASE": {
+          "defaultValue": "openwork_den",
+          "description": "Database created on first start; Den migrations run here.",
+          "isOptional": false
+        },
+        "MYSQLHOST": {
+          "defaultValue": "${{RAILWAY_PRIVATE_DOMAIN}}",
+          "description": "Private DNS name other services use.",
+          "isOptional": false
+        },
+        "MYSQLPORT": {
+          "defaultValue": "3306",
+          "description": "MySQL port.",
+          "isOptional": false
+        },
+        "MYSQLUSER": {
+          "defaultValue": "root",
+          "description": "MySQL user.",
+          "isOptional": false
+        },
+        "MYSQL_URL": {
+          "defaultValue": "mysql://${{MYSQLUSER}}:${{MYSQL_ROOT_PASSWORD}}@${{RAILWAY_PRIVATE_DOMAIN}}:3306/${{MYSQL_DATABASE}}",
+          "description": "Private connection string consumed by den-api.",
+          "isOptional": false
+        }
+      },
+      "networking": {
+        "tcpProxies": {},
+        "serviceDomains": {}
+      },
+      "volumeMounts": {
+        "f4643ee7-aa61-4af9-b0fc-3de7bad3b66c": {
+          "mountPath": "/var/lib/mysql"
+        }
+      }
+    },
+    "226ad05e-2ad1-4b92-963e-b58b6f1513cb": {
+      "name": "den-api",
+      "icon": "https://devicons.railway.app/i/nodejs.svg",
+      "build": {},
+      "source": {
+        "image": "ghcr.io/different-ai/openwork-den-api:0.18.40"
+      },
+      "deploy": {
+        "startCommand": "/bin/sh -c \"cd /app/ee/packages/den-db && n=0; until node ./dist/scripts/bootstrap.js || node --import tsx ./dist/scripts/bootstrap.js; do n=$((n+1)); if [ $n -ge 60 ]; then echo 'den-db bootstrap failed after 60 attempts' >&2; exit 1; fi; echo 'waiting for mysql / retrying den-db bootstrap'; sleep 3; done; cd /app && exec docker-entrypoint.sh node /app/ee/apps/den-api/dist/main.js\"",
+        "healthcheckPath": "/health",
+        "healthcheckTimeout": 600,
+        "restartPolicyType": "ON_FAILURE",
+        "restartPolicyMaxRetries": 10
+      },
+      "variables": {
+        "PORT": {
+          "defaultValue": "8788",
+          "description": "Den API listen port (Railway routes to it).",
+          "isOptional": false
+        },
+        "NODE_ENV": {
+          "defaultValue": "production",
+          "description": "Node environment.",
+          "isOptional": false
+        },
+        "CI": {
+          "defaultValue": "true",
+          "description": "Matches the Helm chart defaults.",
+          "isOptional": false
+        },
+        "OPENWORK_DEV_MODE": {
+          "defaultValue": "0",
+          "description": "Never enable in a hosted deployment.",
+          "isOptional": false
+        },
+        "DB_MODE": {
+          "defaultValue": "mysql",
+          "description": "Den supports MySQL only.",
+          "isOptional": false
+        },
+        "DATABASE_URL": {
+          "defaultValue": "${{mysql.MYSQL_URL}}",
+          "description": "Private MySQL URL from the mysql service.",
+          "isOptional": false
+        },
+        "BETTER_AUTH_SECRET": {
+          "defaultValue": "${{secret(64, \"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789\")}}",
+          "description": "Better Auth signing secret (32+ chars).",
+          "isOptional": false
+        },
+        "DEN_DB_ENCRYPTION_KEY": {
+          "defaultValue": "${{secret(64, \"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789\")}}",
+          "description": "AES-256-GCM key for encrypted columns (32+ chars).",
+          "isOptional": false
+        },
+        "DEN_BASE_URL": {
+          "defaultValue": "https://${{den-web.RAILWAY_PUBLIC_DOMAIN}}",
+          "description": "Public Den web origin; Den derives auth/CORS/MCP defaults from it.",
+          "isOptional": false
+        },
+        "BETTER_AUTH_URL": {
+          "defaultValue": "https://${{den-web.RAILWAY_PUBLIC_DOMAIN}}",
+          "description": "Better Auth base URL (browser-facing).",
+          "isOptional": false
+        },
+        "DEN_API_PUBLIC_URL": {
+          "defaultValue": "https://${{RAILWAY_PUBLIC_DOMAIN}}",
+          "description": "Public Den API origin (used by external MCP clients and install links).",
+          "isOptional": false
+        },
+        "DEN_MCP_RESOURCE_URL": {
+          "defaultValue": "https://${{RAILWAY_PUBLIC_DOMAIN}}/mcp",
+          "description": "MCP protected-resource URL advertised to MCP clients.",
+          "isOptional": false
+        },
+        "DEN_MCP_CLAIM_NAMESPACE": {
+          "defaultValue": "https://${{den-web.RAILWAY_PUBLIC_DOMAIN}}",
+          "description": "Stable namespace for MCP token claims.",
+          "isOptional": false
+        },
+        "CORS_ORIGINS": {
+          "defaultValue": "https://${{den-web.RAILWAY_PUBLIC_DOMAIN}},https://${{RAILWAY_PUBLIC_DOMAIN}}",
+          "description": "Allowed browser origins.",
+          "isOptional": false
+        },
+        "DEN_BETTER_AUTH_TRUSTED_ORIGINS": {
+          "defaultValue": "https://${{den-web.RAILWAY_PUBLIC_DOMAIN}},https://${{RAILWAY_PUBLIC_DOMAIN}}",
+          "description": "Trusted origins for Better Auth.",
+          "isOptional": false
+        },
+        "DEN_ORG_MODE": {
+          "defaultValue": "single_org",
+          "description": "single_org for a private deployment; multi_org for hosted-style.",
+          "isOptional": false
+        },
+        "DEN_SINGLE_ORG_NAME": {
+          "defaultValue": "Garza",
+          "description": "Organization display name.",
+          "isOptional": false
+        },
+        "DEN_SINGLE_ORG_SLUG": {
+          "defaultValue": "default",
+          "description": "Organization slug.",
+          "isOptional": false
+        },
+        "DEN_SINGLE_ORG_OWNER_EMAILS": {
+          "defaultValue": "",
+          "description": "Comma-separated emails allowed to claim ownership. REQUIRED: set to your email.",
+          "isOptional": false
+        },
+        "DEN_BOOTSTRAP_ADMIN_EMAILS": {
+          "defaultValue": "${{DEN_SINGLE_ORG_OWNER_EMAILS}}",
+          "description": "Platform admins seeded on startup.",
+          "isOptional": false
+        },
+        "DEN_SINGLE_ORG_ALLOW_PUBLIC_SIGNUP": {
+          "defaultValue": "false",
+          "description": "Keep false; owners invite members.",
+          "isOptional": false
+        },
+        "DEN_REQUIRE_EMAIL_VERIFICATION": {
+          "defaultValue": "false",
+          "description": "Single-org installs skip verification codes by default.",
+          "isOptional": false
+        },
+        "DEN_PASSWORD_BREACH_SCREENING_ENABLED": {
+          "defaultValue": "true",
+          "description": "Railway has egress, so keep HIBP screening on.",
+          "isOptional": false
+        },
+        "DEN_INSTALL_LINKS_GATING_ENABLED": {
+          "defaultValue": "false",
+          "description": "Every org gets desktop install links.",
+          "isOptional": false
+        },
+        "DEN_AUTOMATIONS_ENABLED": {
+          "defaultValue": "true",
+          "description": "Scheduled automations available to desktops.",
+          "isOptional": false
+        },
+        "DEN_AUTOMATIONS_RUNTIME_ENABLED": {
+          "defaultValue": "true",
+          "description": "Scheduler runs inside den-api.",
+          "isOptional": false
+        },
+        "DEN_DASHBOARDS_ENABLED": {
+          "defaultValue": "true",
+          "description": "Org dashboard.",
+          "isOptional": false
+        },
+        "DEN_OPENWORK_WEB_ENABLED": {
+          "defaultValue": "false",
+          "description": "Browser client is an Enterprise feature; leave false unless licensed.",
+          "isOptional": false
+        },
+        "DEN_ALLOW_PRIVATE_MCP_URLS": {
+          "defaultValue": "0",
+          "description": "Set 1 only if your MCP servers live on private addresses you trust.",
+          "isOptional": false
+        },
+        "DEN_DESKTOP_RELEASES_MODE": {
+          "defaultValue": "github",
+          "description": "Desktop release discovery.",
+          "isOptional": false
+        },
+        "PROVISIONER_MODE": {
+          "defaultValue": "stub",
+          "description": "stub | daytona | render. stub = you run workers (this template ships one).",
+          "isOptional": false
+        },
+        "WORKER_PROVISIONING_RECONCILE_INTERVAL_MS": {
+          "defaultValue": "60000",
+          "description": "Reconcile loop interval.",
+          "isOptional": false
+        },
+        "WORKER_PROVISIONING_RECONCILE_STALE_MS": {
+          "defaultValue": "1200000",
+          "description": "Stale worker threshold.",
+          "isOptional": false
+        },
+        "WORKER_PROVISIONING_RECONCILE_BATCH_SIZE": {
+          "defaultValue": "10",
+          "description": "Reconcile batch size.",
+          "isOptional": false
+        },
+        "EMAIL_FROM": {
+          "defaultValue": "Garza Den <no-reply@example.com>",
+          "description": "From header for invites.",
+          "isOptional": true
+        },
+        "RESEND_API_KEY": {
+          "defaultValue": "",
+          "description": "Resend API key for transactional email (or use SMTP_* instead).",
+          "isOptional": true
+        },
+        "SMTP_HOST": {
+          "defaultValue": "",
+          "description": "SMTP host (alternative to Resend).",
+          "isOptional": true
+        },
+        "SMTP_PORT": {
+          "defaultValue": "587",
+          "description": "SMTP port.",
+          "isOptional": true
+        },
+        "SMTP_USER": {
+          "defaultValue": "",
+          "description": "SMTP user.",
+          "isOptional": true
+        },
+        "SMTP_PASS": {
+          "defaultValue": "",
+          "description": "SMTP password.",
+          "isOptional": true
+        },
+        "SMTP_SECURE": {
+          "defaultValue": "false",
+          "description": "SMTP TLS on connect.",
+          "isOptional": true
+        },
+        "DATABASE_REDIS_URL": {
+          "defaultValue": "",
+          "description": "Optional rediss:// URL for session/query cache.",
+          "isOptional": true
+        },
+        "DAYTONA_API_KEY": {
+          "defaultValue": "",
+          "description": "Set with PROVISIONER_MODE=daytona for per-user sandboxes.",
+          "isOptional": true
+        },
+        "DAYTONA_API_URL": {
+          "defaultValue": "https://app.daytona.io/api",
+          "description": "Daytona API URL.",
+          "isOptional": true
+        },
+        "DAYTONA_SNAPSHOT": {
+          "defaultValue": "",
+          "description": "Daytona snapshot name built from services/worker.",
+          "isOptional": true
+        },
+        "DEN_OBSERVABILITY_BACKEND": {
+          "defaultValue": "none",
+          "description": "none | otel | sentry.",
+          "isOptional": true
+        },
+        "OTEL_EXPORTER_OTLP_ENDPOINT": {
+          "defaultValue": "",
+          "description": "OTLP HTTP endpoint when backend=otel.",
+          "isOptional": true
+        },
+        "WORKER_URL_TEMPLATE": {
+          "defaultValue": "https://${{worker.RAILWAY_PUBLIC_DOMAIN}}",
+          "description": "Stub provisioner hands this URL to the desktop for 'Shared Workspace'.",
+          "isOptional": false
+        }
+      },
+      "networking": {
+        "tcpProxies": {},
+        "serviceDomains": {
+          "<hasDomain>": {}
+        }
+      },
+      "volumeMounts": {}
+    },
+    "fed6d6e0-78e5-4397-a8c3-c5b8c0033e90": {
+      "name": "den-web",
+      "icon": "https://devicons.railway.app/i/nextjs.svg",
+      "build": {},
+      "source": {
+        "image": "ghcr.io/different-ai/openwork-den-web:0.18.40"
+      },
+      "deploy": {
+        "startCommand": "/bin/sh -c \"exec /app/ee/apps/den-web/node_modules/.bin/next start --hostname :: --port ${PORT:-3005}\"",
+        "healthcheckPath": "/api/health",
+        "healthcheckTimeout": 300,
+        "restartPolicyType": "ON_FAILURE",
+        "restartPolicyMaxRetries": 10
+      },
+      "variables": {
+        "PORT": {
+          "defaultValue": "3005",
+          "description": "Den web listen port.",
+          "isOptional": false
+        },
+        "NODE_ENV": {
+          "defaultValue": "production",
+          "description": "Node environment.",
+          "isOptional": false
+        },
+        "DEN_BASE_URL": {
+          "defaultValue": "https://${{RAILWAY_PUBLIC_DOMAIN}}",
+          "description": "This service's public origin.",
+          "isOptional": false
+        },
+        "DEN_WEB_PUBLIC_ORIGIN": {
+          "defaultValue": "https://${{RAILWAY_PUBLIC_DOMAIN}}",
+          "description": "Public origin advertised to browsers/desktops.",
+          "isOptional": false
+        },
+        "DEN_AUTH_ORIGIN": {
+          "defaultValue": "https://${{RAILWAY_PUBLIC_DOMAIN}}",
+          "description": "Origin used for auth redirects.",
+          "isOptional": false
+        },
+        "DEN_WEB_OPENWORK_AUTH_CALLBACK_URL": {
+          "defaultValue": "https://${{RAILWAY_PUBLIC_DOMAIN}}",
+          "description": "Desktop sign-in callback base.",
+          "isOptional": false
+        },
+        "DEN_API_BASE": {
+          "defaultValue": "http://${{den-api.RAILWAY_PRIVATE_DOMAIN}}:8788",
+          "description": "Server-side upstream for the /api/den proxy (private network).",
+          "isOptional": false
+        },
+        "DEN_AUTH_FALLBACK_BASE": {
+          "defaultValue": "http://${{den-api.RAILWAY_PRIVATE_DOMAIN}}:8788",
+          "description": "Container-internal fallback for server-side auth calls.",
+          "isOptional": false
+        },
+        "DEN_API_PUBLIC_URL": {
+          "defaultValue": "https://${{den-api.RAILWAY_PUBLIC_DOMAIN}}",
+          "description": "Browser-reachable Den API origin returned by /api/runtime-config.",
+          "isOptional": false
+        },
+        "DEN_ORG_MODE": {
+          "defaultValue": "${{den-api.DEN_ORG_MODE}}",
+          "description": "Mirror of den-api.",
+          "isOptional": false
+        },
+        "DEN_SINGLE_ORG_NAME": {
+          "defaultValue": "${{den-api.DEN_SINGLE_ORG_NAME}}",
+          "description": "Mirror of den-api.",
+          "isOptional": false
+        },
+        "DEN_SINGLE_ORG_SLUG": {
+          "defaultValue": "${{den-api.DEN_SINGLE_ORG_SLUG}}",
+          "description": "Mirror of den-api.",
+          "isOptional": false
+        },
+        "DEN_SINGLE_ORG_ALLOW_PUBLIC_SIGNUP": {
+          "defaultValue": "${{den-api.DEN_SINGLE_ORG_ALLOW_PUBLIC_SIGNUP}}",
+          "description": "Mirror of den-api.",
+          "isOptional": false
+        },
+        "NEXT_PUBLIC_DEN_OBSERVABILITY_BACKEND": {
+          "defaultValue": "none",
+          "description": "Browser telemetry backend.",
+          "isOptional": true
+        }
+      },
+      "networking": {
+        "tcpProxies": {},
+        "serviceDomains": {
+          "<hasDomain>": {}
+        }
+      },
+      "volumeMounts": {}
+    },
+    "26c1c1c5-3923-4675-97e8-c873b330f314": {
+      "name": "worker",
+      "icon": "https://devicons.railway.app/i/docker.svg",
+      "build": {},
+      "source": {
+        "image": "ghcr.io/itsablabla/ipollowork-worker:0.18.40"
+      },
+      "deploy": {
+        "healthcheckPath": "/health",
+        "healthcheckTimeout": 600,
+        "restartPolicyType": "ON_FAILURE",
+        "restartPolicyMaxRetries": 10,
+        "requiredMountPath": "/data"
+      },
+      "variables": {
+        "PORT": {
+          "defaultValue": "8787",
+          "description": "openwork-server port.",
+          "isOptional": false
+        },
+        "OPENWORK_PORT": {
+          "defaultValue": "8787",
+          "description": "openwork-server port (mirror).",
+          "isOptional": false
+        },
+        "OPENWORK_TOKEN": {
+          "defaultValue": "${{secret(48, \"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789\")}}",
+          "description": "Client token pasted into the desktop when connecting.",
+          "isOptional": false
+        },
+        "OPENWORK_HOST_TOKEN": {
+          "defaultValue": "${{secret(48, \"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789\")}}",
+          "description": "Owner/host approval token.",
+          "isOptional": false
+        },
+        "OPENWORK_APPROVAL_MODE": {
+          "defaultValue": "manual",
+          "description": "manual = approve writes from the desktop; auto = unattended.",
+          "isOptional": false
+        },
+        "OPENWORK_CORS_ORIGINS": {
+          "defaultValue": "*",
+          "description": "CORS for browser clients; tighten to your den-web origin if desired.",
+          "isOptional": false
+        },
+        "OPENWORK_WORKSPACE": {
+          "defaultValue": "/data/workspace",
+          "description": "Workspace path on the persistent volume.",
+          "isOptional": false
+        },
+        "OPENWORK_DATA_DIR": {
+          "defaultValue": "/data/openwork",
+          "description": "OpenCode + server state on the persistent volume.",
+          "isOptional": false
+        },
+        "OPENWORK_SIDECAR_DIR": {
+          "defaultValue": "/data/sidecars",
+          "description": "Sidecar cache on the persistent volume.",
+          "isOptional": false
+        },
+        "OPENWORK_LOG_FORMAT": {
+          "defaultValue": "json",
+          "description": "Structured logs for Railway log search.",
+          "isOptional": true
+        },
+        "ANTHROPIC_API_KEY": {
+          "defaultValue": "",
+          "description": "Model key for OpenCode (or set providers in Den and sync).",
+          "isOptional": true
+        },
+        "OPENAI_API_KEY": {
+          "defaultValue": "",
+          "description": "Model key for OpenCode.",
+          "isOptional": true
+        },
+        "OPENROUTER_API_KEY": {
+          "defaultValue": "",
+          "description": "Model key for OpenCode.",
+          "isOptional": true
+        },
+        "RAILWAY_RUN_UID": {
+          "defaultValue": "0",
+          "description": "Volume permissions: run as root inside the container.",
+          "isOptional": false
+        }
+      },
+      "networking": {
+        "tcpProxies": {},
+        "serviceDomains": {
+          "<hasDomain>": {}
+        }
+      },
+      "volumeMounts": {
+        "62ad3a16-39d7-4bab-b80c-af99d638e0f5": {
+          "mountPath": "/data"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "den": "0.18.40",
+  "openwork_server": "0.18.40",
+  "opencode": "1.18.18",
+  "mysql": "8.4",
+  "template_repo": "itsablabla/ipollowork-den-railway",
+  "template_branch": "main",
+  "worker_image": "ghcr.io/itsablabla/ipollowork-worker"
+}

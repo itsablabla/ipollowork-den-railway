@@ -1,0 +1,127 @@
+# Local parity stack for the Railway template (same images, same variables).
+#   cp .env.example .env   # fill DEN_OWNER_EMAIL, generate secrets
+#   docker compose up -d --wait
+#   open http://localhost:3005
+name: ipollowork-den
+
+services:
+  mysql:
+    build: ./services/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: openwork_den
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
+    volumes:
+      - mysql-data:/var/lib/mysql
+
+  den-api:
+    build:
+      context: ./services/den-api
+      args:
+        DEN_VERSION: ${DEN_VERSION:-0.18.40}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${DEN_API_PORT:-8788}:8788"
+    environment:
+      PORT: "8788"
+      NODE_ENV: production
+      CI: "true"
+      OPENWORK_DEV_MODE: "0"
+      DB_MODE: mysql
+      DATABASE_URL: mysql://root:${MYSQL_ROOT_PASSWORD}@mysql:3306/openwork_den
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?set BETTER_AUTH_SECRET (32+ chars)}
+      DEN_DB_ENCRYPTION_KEY: ${DEN_DB_ENCRYPTION_KEY:?set DEN_DB_ENCRYPTION_KEY (32+ chars)}
+      DEN_BASE_URL: ${DEN_WEB_ORIGIN:-http://localhost:3005}
+      BETTER_AUTH_URL: ${DEN_WEB_ORIGIN:-http://localhost:3005}
+      DEN_API_PUBLIC_URL: ${DEN_API_ORIGIN:-http://localhost:8788}
+      DEN_MCP_RESOURCE_URL: ${DEN_API_ORIGIN:-http://localhost:8788}/mcp
+      DEN_MCP_CLAIM_NAMESPACE: ${DEN_WEB_ORIGIN:-http://localhost:3005}
+      CORS_ORIGINS: ${DEN_WEB_ORIGIN:-http://localhost:3005},${DEN_API_ORIGIN:-http://localhost:8788}
+      DEN_BETTER_AUTH_TRUSTED_ORIGINS: ${DEN_WEB_ORIGIN:-http://localhost:3005},${DEN_API_ORIGIN:-http://localhost:8788}
+      DEN_ORG_MODE: single_org
+      DEN_SINGLE_ORG_NAME: ${DEN_ORG_NAME:-Garza}
+      DEN_SINGLE_ORG_SLUG: default
+      DEN_SINGLE_ORG_OWNER_EMAILS: ${DEN_OWNER_EMAIL:?set DEN_OWNER_EMAIL}
+      DEN_BOOTSTRAP_ADMIN_EMAILS: ${DEN_OWNER_EMAIL}
+      DEN_SINGLE_ORG_ALLOW_PUBLIC_SIGNUP: "false"
+      DEN_REQUIRE_EMAIL_VERIFICATION: "false"
+      DEN_PASSWORD_BREACH_SCREENING_ENABLED: "true"
+      DEN_INSTALL_LINKS_GATING_ENABLED: "false"
+      DEN_AUTOMATIONS_ENABLED: "true"
+      DEN_AUTOMATIONS_RUNTIME_ENABLED: "true"
+      DEN_DASHBOARDS_ENABLED: "true"
+      DEN_OPENWORK_WEB_ENABLED: "false"
+      DEN_ALLOW_PRIVATE_MCP_URLS: "0"
+      DEN_DESKTOP_RELEASES_MODE: github
+      PROVISIONER_MODE: stub
+      WORKER_URL_TEMPLATE: ${WORKER_ORIGIN:-http://localhost:8787}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      EMAIL_FROM: ${EMAIL_FROM:-Garza Den <no-reply@example.com>}
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8788/health').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+      start_period: 90s
+
+  den-web:
+    build:
+      context: ./services/den-web
+      args:
+        DEN_VERSION: ${DEN_VERSION:-0.18.40}
+    depends_on:
+      den-api:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${DEN_WEB_PORT:-3005}:3005"
+    environment:
+      PORT: "3005"
+      NODE_ENV: production
+      DEN_BASE_URL: ${DEN_WEB_ORIGIN:-http://localhost:3005}
+      DEN_WEB_PUBLIC_ORIGIN: ${DEN_WEB_ORIGIN:-http://localhost:3005}
+      DEN_AUTH_ORIGIN: ${DEN_WEB_ORIGIN:-http://localhost:3005}
+      DEN_WEB_OPENWORK_AUTH_CALLBACK_URL: ${DEN_WEB_ORIGIN:-http://localhost:3005}
+      DEN_API_BASE: http://den-api:8788
+      DEN_AUTH_FALLBACK_BASE: http://den-api:8788
+      DEN_API_PUBLIC_URL: ${DEN_API_ORIGIN:-http://localhost:8788}
+      DEN_ORG_MODE: single_org
+      DEN_SINGLE_ORG_NAME: ${DEN_ORG_NAME:-Garza}
+      DEN_SINGLE_ORG_SLUG: default
+      DEN_SINGLE_ORG_ALLOW_PUBLIC_SIGNUP: "false"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3005/api/health').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 10s
+      retries: 30
+      start_period: 60s
+
+  worker:
+    build:
+      context: ./services/worker
+      args:
+        OPENWORK_SERVER_VERSION: ${OPENWORK_SERVER_VERSION:-0.18.40}
+        OPENCODE_VERSION: ${OPENCODE_VERSION:-1.18.18}
+    ports:
+      - "127.0.0.1:${WORKER_PORT:-8787}:8787"
+    environment:
+      OPENWORK_PORT: "8787"
+      OPENWORK_TOKEN: ${OPENWORK_TOKEN:-}
+      OPENWORK_HOST_TOKEN: ${OPENWORK_HOST_TOKEN:-}
+      OPENWORK_APPROVAL_MODE: ${OPENWORK_APPROVAL_MODE:-manual}
+      OPENWORK_CORS_ORIGINS: "*"
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+    volumes:
+      - worker-data:/data
+
+volumes:
+  mysql-data:
+  worker-data:
