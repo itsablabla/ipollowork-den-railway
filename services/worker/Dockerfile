@@ -2,6 +2,8 @@
 # internal OpenCode engine, plus the OpenWork OpenCode plugin bundle built from
 # source at the matching tag (the npm package does not ship it).
 #
+# linux/amd64 only: the openwork-server npm package ships a single x86-64 ELF
+# binary (Railway builds/runs amd64). arm64 hosts must build from source.
 # Verified 2026-09-01: openwork-server 0.18.40 + OpenCode 1.18.18 + plugin
 # bundle start, /health returns ok, managed engine listens on 127.0.0.1.
 ARG OPENWORK_SERVER_VERSION=0.18.40

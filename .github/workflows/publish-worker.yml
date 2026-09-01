@@ -30,7 +30,7 @@ jobs:
       - uses: docker/build-push-action@v6
         with:
           context: services/worker
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64  # openwork-server npm ships an x86-64 binary only
           push: true
           build-args: |
             OPENWORK_SERVER_VERSION=${{ steps.v.outputs.server }}

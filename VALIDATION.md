@@ -29,6 +29,8 @@ What was verified while building this template (2026-09-01), and what CI verifie
 
 ## Known gaps
 
+- `openwork-server@0.18.40` on npm is an x86-64 Linux binary only; the worker image is published for `linux/amd64` (an arm64 build attempt fails with "Missing runtime dependency").
+
 - Not exercised here: a live Railway deploy (needs `RAILWAY_API_TOKEN`) and a desktop sign-in against this Den. Both are the first two steps in README "First run".
 - `templateGenerate` copies literal secret values into the template; swap them back to `${{secret(...)}}` in the composer (the provisioning script prints the exact list).
 - Upstream's own `packaging/docker/Dockerfile` pins OpenCode 1.17.11 and expects `dist/opencode-plugins` inside the npm package; neither matches `openwork-server@0.18.40`, which is why this worker image builds the plugin bundle from source and pins OpenCode 1.18.18.
