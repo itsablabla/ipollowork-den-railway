@@ -33,6 +33,13 @@ What was verified while building this template (2026-09-01), and what CI verifie
 - First owner created via `/v1/auth/bootstrap/verify` + `/api/auth/sign-up/email` with `bootstrapGrant`; `/v1/me/orgs` returns org "Garza", role `owner`, limits `{members: 5, workers: 1}`; bootstrap status flipped to `complete`.
 - Two upstream behaviours discovered and documented in the README: `/api/den/*` on den-web is a 307 redirect to `DEN_API_BASE` (so it must be the public origin), and the `/setup` page races runtime-config and needs `api.<web-host>` unless the API is called directly.
 
+## Official iPolloWork worker + browser UI (2026-09-01)
+
+- Image `ghcr.io/itsablabla/ipollowork-worker:0.50.12` built from `Devin-AXIS/iPolloWork@v0.50.12`: `ipollowork-server` (Bun, `dist/cli.js`), OpenCode 1.18.16 (repo `constants.json`), plugin bundle, and `@ipollowork/app` web build. CI `validate` (compose stack boot + worker smoke) green.
+- Live on Railway: `/health` → `{"ok":true,"version":"0.50.12","opencodeVersion":"1.18.16"}`; `/` shows the password gate; after login the official UI loads (Work/Code/Create/Video, Templates, Schedule, Extensions, Plugin Workshop, Projects, Settings → AI Providers with 20+ providers incl. Zhipu AI/GLM); sending "hello" produced a model reply via the built-in provider.
+- Gate behaviour unit-checked locally: public `/health`, 401 for API without cookie/bearer, bearer passthrough, wrong password → 401, correct password → cookie + redirect, SPA deep links → index.html, assets served, cookie stripped before proxying.
+- Known cosmetic: a transient "Unexpected server error" toast on first load (browser build calling a desktop-only endpoint); Electron update check banner in Settings is expected in the browser build.
+
 ## Known gaps
 
 - `openwork-server@0.18.40` on npm is an x86-64 Linux binary only; the worker image is published for `linux/amd64` (an arm64 build attempt fails with "Missing runtime dependency").

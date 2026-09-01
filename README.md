@@ -49,7 +49,7 @@ node scripts/railway-provision.mjs \
 
 Use `template/railway-template.image-only.json` to deploy only the control plane (no worker, no GitHub repo needed). Add `--dry-run` to print the API plan without calling Railway.
 
-The worker image is published to GHCR by `.github/workflows/publish-worker.yml`; the template pulls it as a plain image, so no Railway GitHub integration is required.
+The worker image is published to GHCR by `.github/workflows/publish-worker.yml`; the template pulls it as a plain image, so no Railway GitHub integration is required. It is built entirely from the official iPolloWork source (`Devin-AXIS/iPolloWork` tag `v<ipollowork>` in `versions.json`): neither `ipollowork-server` nor the web app is published to npm or a registry. The earlier Openwork-based worker is kept in `services/worker-openwork/` for reference.
 
 ### Option C: Railway CLI
 
@@ -100,7 +100,8 @@ Railway resolves `${{other-service.VAR}}` against the services that exist when a
 
    Then sign in normally at den-web. (`/setup` works as designed when den-api is reachable at `api.<den-web host>`, e.g. with a custom domain pair.)
 3. Desktop app → **Settings → Cloud → Cloud URL** = `https://<den-web domain>` → Sign in → pick the org. The desktop derives API and MCP traffic from that one URL (`<base>/api/den/v1/...`, `<base>/api/den/mcp/...`) and reads `denApiUrl` from `<base>/api/runtime-config`, which this template sets to den-api's public domain.
-4. Hosted worker: in the desktop choose **Add workspace → Connect custom remote**, paste `https://<worker domain>` plus `OPENWORK_TOKEN` (client) or `OPENWORK_HOST_TOKEN` (owner) from the worker's variables.
+4. **Browser workbench (the main UI).** Open `https://<worker domain>/` and sign in with the worker's `IPOLLOWORK_WEB_PASSWORD`. This is the official iPolloWork UI (`@ipollowork/app`, built from the pinned tag in web mode) served by the worker: Work / Code / Create / Video, Templates, Schedule, Extensions, Plugin Workshop, Projects, Settings → AI Providers. The login gate (`services/worker/web-gate.mjs`) injects the worker client token after login, so the UI is connected immediately.
+5. Desktop app instead: **Add workspace → Connect custom remote**, paste `https://<worker domain>` plus `IPOLLOWORK_TOKEN` (client) or `IPOLLOWORK_HOST_TOKEN` (owner) from the worker's variables.
 5. External MCP clients (Claude Code, Codex, Cursor, OpenCode) use `https://<den-api domain>/mcp/agent` with OAuth.
 
 ## Configuration notes
