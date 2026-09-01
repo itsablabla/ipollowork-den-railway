@@ -88,7 +88,17 @@ Railway resolves `${{other-service.VAR}}` against the services that exist when a
 ## First run
 
 1. Wait for `mysql` → `den-api` → `den-web` → `worker` to go healthy. `den-api`'s start command retries the `den-db` migration until MySQL accepts connections, so a cold template deploy self-heals.
-2. Create the first account at `https://<den-web domain>/setup`: enter an email from `DEN_SINGLE_ORG_OWNER_EMAILS` plus the one-time code in den-api's `DEN_INITIAL_ADMIN_BOOTSTRAP_CODE` variable (public signup is off, so `/setup` is the only way in for the first user; the flow disappears once any user exists). Set the owner email before deploying; it is the only required input.
+2. Create the first account. Public signup is off, so the first owner is created with the one-time code in den-api's `DEN_INITIAL_ADMIN_BOOTSTRAP_CODE`. The `/setup` page in 0.18.40 fires its status request before it has loaded the API origin and falls back to `api.<web-host>`, which does not exist on Railway domains, so it shows "setup is not available" even when it is. Use the API instead (passwords need upper, lower, digit and a special character):
+
+   ```bash
+   API=https://<den-api domain>; WEB=https://<den-web domain>
+   GRANT=$(curl -s -X POST "$API/v1/auth/bootstrap/verify" -H 'Content-Type: application/json' -H "Origin: $WEB" \
+     -d '{"email":"you@example.com","code":"<DEN_INITIAL_ADMIN_BOOTSTRAP_CODE>"}' | jq -r .grant)
+   curl -s -X POST "$API/api/auth/sign-up/email" -H 'Content-Type: application/json' -H "Origin: $WEB" \
+     -d "{\"email\":\"you@example.com\",\"name\":\"Your Name\",\"password\":\"<strong password>\",\"bootstrapGrant\":\"$GRANT\"}"
+   ```
+
+   Then sign in normally at den-web. (`/setup` works as designed when den-api is reachable at `api.<den-web host>`, e.g. with a custom domain pair.)
 3. Desktop app → **Settings → Cloud → Cloud URL** = `https://<den-web domain>` → Sign in → pick the org. The desktop derives API and MCP traffic from that one URL (`<base>/api/den/v1/...`, `<base>/api/den/mcp/...`) and reads `denApiUrl` from `<base>/api/runtime-config`, which this template sets to den-api's public domain.
 4. Hosted worker: in the desktop choose **Add workspace → Connect custom remote**, paste `https://<worker domain>` plus `OPENWORK_TOKEN` (client) or `OPENWORK_HOST_TOKEN` (owner) from the worker's variables.
 5. External MCP clients (Claude Code, Codex, Cursor, OpenCode) use `https://<den-api domain>/mcp/agent` with OAuth.

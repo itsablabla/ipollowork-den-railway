@@ -27,6 +27,12 @@ What was verified while building this template (2026-09-01), and what CI verifie
 - Re-generates `template/*.json` and fails if the committed files are stale.
 - Validates `railway.json` files, shellcheck, provisioning dry run, `docker compose config`.
 
+## Live deployment checks (Railway, 2026-09-01)
+
+- All four services healthy; `den-web /api/ready` reports configuration + upstream ok; `den-api /.well-known/oauth-protected-resource` correct.
+- First owner created via `/v1/auth/bootstrap/verify` + `/api/auth/sign-up/email` with `bootstrapGrant`; `/v1/me/orgs` returns org "Garza", role `owner`, limits `{members: 5, workers: 1}`; bootstrap status flipped to `complete`.
+- Two upstream behaviours discovered and documented in the README: `/api/den/*` on den-web is a 307 redirect to `DEN_API_BASE` (so it must be the public origin), and the `/setup` page races runtime-config and needs `api.<web-host>` unless the API is called directly.
+
 ## Known gaps
 
 - `openwork-server@0.18.40` on npm is an x86-64 Linux binary only; the worker image is published for `linux/amd64` (an arm64 build attempt fails with "Missing runtime dependency").
