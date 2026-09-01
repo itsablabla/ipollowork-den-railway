@@ -1,6 +1,6 @@
 {
   "services": {
-    "2f648d92-206f-4fa5-a82e-8e803164f4ae": {
+    "bc2d2ff0-b2c9-5188-800a-d56aa0a640a8": {
       "name": "mysql",
       "icon": "https://devicons.railway.app/i/mysql.svg",
       "build": {},
@@ -49,12 +49,12 @@
         "serviceDomains": {}
       },
       "volumeMounts": {
-        "f4643ee7-aa61-4af9-b0fc-3de7bad3b66c": {
+        "91d763c0-d281-534c-8779-88b0bc837263": {
           "mountPath": "/var/lib/mysql"
         }
       }
     },
-    "226ad05e-2ad1-4b92-963e-b58b6f1513cb": {
+    "05a18695-6d94-50a8-9c30-1eb4de05fb28": {
       "name": "den-api",
       "icon": "https://devicons.railway.app/i/nodejs.svg",
       "build": {},
@@ -318,7 +318,7 @@
       },
       "volumeMounts": {}
     },
-    "fed6d6e0-78e5-4397-a8c3-c5b8c0033e90": {
+    "6108b67d-3fbc-5ef1-b1ed-ed353460e734": {
       "name": "den-web",
       "icon": "https://devicons.railway.app/i/nextjs.svg",
       "build": {},
@@ -412,7 +412,7 @@
       },
       "volumeMounts": {}
     },
-    "26c1c1c5-3923-4675-97e8-c873b330f314": {
+    "d9765e2d-bce3-5cef-9bf3-ada905fd8abb": {
       "name": "worker",
       "icon": "https://devicons.railway.app/i/docker.svg",
       "build": {},
@@ -505,7 +505,7 @@
         }
       },
       "volumeMounts": {
-        "62ad3a16-39d7-4bab-b80c-af99d638e0f5": {
+        "dd2a8dd3-99c3-5966-99da-a74ad482c894": {
           "mountPath": "/data"
         }
       }

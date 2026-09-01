@@ -36,8 +36,12 @@ def var(default: str, description: str, optional: bool = False) -> dict:
     return {"defaultValue": default, "description": description, "isOptional": optional}
 
 
-def sid() -> str:
-    return str(uuid.uuid4())
+NAMESPACE = uuid.UUID("6f1c2f3e-9b1a-4c5d-8e7f-0a1b2c3d4e5f")
+
+
+def sid(name: str) -> str:
+    """Deterministic service/volume ids so regeneration is reproducible."""
+    return str(uuid.uuid5(NAMESPACE, name))
 
 
 # ---------------------------------------------------------------------------
@@ -70,7 +74,7 @@ def mysql_service() -> dict:
             ),
         },
         "networking": {"tcpProxies": {}, "serviceDomains": {}},
-        "volumeMounts": {sid(): {"mountPath": "/var/lib/mysql"}},
+        "volumeMounts": {sid("mysql-volume"): {"mountPath": "/var/lib/mysql"}},
     }
 
 
@@ -263,7 +267,7 @@ def worker_service() -> dict:
             "RAILWAY_RUN_UID": var("0", "Volume permissions: run as root inside the container."),
         },
         "networking": {"tcpProxies": {}, "serviceDomains": {"<hasDomain>": {}}},
-        "volumeMounts": {sid(): {"mountPath": "/data"}},
+        "volumeMounts": {sid("worker-volume"): {"mountPath": "/data"}},
     }
 
 
@@ -271,7 +275,7 @@ def build(with_worker: bool) -> dict:
     services = [mysql_service(), den_api_service(with_worker), den_web_service()]
     if with_worker:
         services.append(worker_service())
-    return {"services": {sid(): s for s in services}}
+    return {"services": {sid(s["name"]): s for s in services}}
 
 
 def variables_markdown(cfg: dict) -> str:
