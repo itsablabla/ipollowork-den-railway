@@ -99,7 +99,7 @@ Healthcheck: `/api/health`
 | `DEN_WEB_PUBLIC_ORIGIN` | `https://${{RAILWAY_PUBLIC_DOMAIN}}` | yes | Public origin advertised to browsers/desktops. |
 | `DEN_AUTH_ORIGIN` | `https://${{RAILWAY_PUBLIC_DOMAIN}}` | yes | Origin used for auth redirects. |
 | `DEN_WEB_OPENWORK_AUTH_CALLBACK_URL` | `https://${{RAILWAY_PUBLIC_DOMAIN}}` | yes | Desktop sign-in callback base. |
-| `DEN_API_BASE` | `http://${{den-api.RAILWAY_PRIVATE_DOMAIN}}:8788` | yes | Server-side upstream for the /api/den proxy (private network). |
+| `DEN_API_BASE` | `https://${{den-api.RAILWAY_PUBLIC_DOMAIN}}` | yes | Den API origin. Must be browser-reachable: den-web's /api/den/* route 307-redirects browsers to this origin (verified on 0.18.40). |
 | `DEN_AUTH_FALLBACK_BASE` | `http://${{den-api.RAILWAY_PRIVATE_DOMAIN}}:8788` | yes | Container-internal fallback for server-side auth calls. |
 | `DEN_API_PUBLIC_URL` | `https://${{den-api.RAILWAY_PUBLIC_DOMAIN}}` | yes | Browser-reachable Den API origin returned by /api/runtime-config. |
 | `DEN_ORG_MODE` | `${{den-api.DEN_ORG_MODE}}` | yes | Mirror of den-api. |

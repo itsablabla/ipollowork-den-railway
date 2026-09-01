@@ -89,7 +89,7 @@ services:
       DEN_WEB_PUBLIC_ORIGIN: ${DEN_WEB_ORIGIN:-http://localhost:3005}
       DEN_AUTH_ORIGIN: ${DEN_WEB_ORIGIN:-http://localhost:3005}
       DEN_WEB_OPENWORK_AUTH_CALLBACK_URL: ${DEN_WEB_ORIGIN:-http://localhost:3005}
-      DEN_API_BASE: http://den-api:8788
+      DEN_API_BASE: ${DEN_API_ORIGIN:-http://localhost:8788}
       DEN_AUTH_FALLBACK_BASE: http://den-api:8788
       DEN_API_PUBLIC_URL: ${DEN_API_ORIGIN:-http://localhost:8788}
       DEN_ORG_MODE: single_org

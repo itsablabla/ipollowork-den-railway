@@ -212,8 +212,8 @@ def den_web_service() -> dict:
             "DEN_AUTH_ORIGIN": var(me, "Origin used for auth redirects."),
             "DEN_WEB_OPENWORK_AUTH_CALLBACK_URL": var(me, "Desktop sign-in callback base."),
             "DEN_API_BASE": var(
-                "http://${{den-api.RAILWAY_PRIVATE_DOMAIN}}:8788",
-                "Server-side upstream for the /api/den proxy (private network).",
+                "https://${{den-api.RAILWAY_PUBLIC_DOMAIN}}",
+                "Den API origin. Must be browser-reachable: den-web's /api/den/* route 307-redirects browsers to this origin (verified on 0.18.40).",
             ),
             "DEN_AUTH_FALLBACK_BASE": var(
                 "http://${{den-api.RAILWAY_PRIVATE_DOMAIN}}:8788",
