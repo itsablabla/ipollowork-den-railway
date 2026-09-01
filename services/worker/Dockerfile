@@ -26,7 +26,7 @@ WORKDIR /app
 RUN git clone --depth 1 --branch "v${IPOLLOWORK_VERSION}" --filter=blob:none --sparse https://github.com/Devin-AXIS/iPolloWork.git . \
   && git sparse-checkout set --no-cone \
        '/package.json' '/pnpm-lock.yaml' '/pnpm-workspace.yaml' '/constants.json' '/tsconfig*.json' '/patches/*' \
-       '/packages/types/*' '/packages/ui/*' '/packages/install-config/*' '/packages/design-studio/*' '/packages/video-studio/*' \
+       '/packages/types/*' '/packages/ui/*' '/packages/install-config/*' '/packages/design-studio/*' '/packages/video-studio/*' '/packages/docs/*' \
        '/apps/app/*' '/apps/server/*' \
   && rm -rf .git
 # Only part of the workspace is checked out; pnpm would otherwise reject
