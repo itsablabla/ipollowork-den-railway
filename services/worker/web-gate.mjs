@@ -13,13 +13,15 @@
 
 import http from "node:http";
 import crypto from "node:crypto";
-import { readFile, stat } from "node:fs/promises";
-import { extname, resolve, sep } from "node:path";
+import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
+import { dirname, extname, resolve, sep } from "node:path";
 
 const LISTEN_PORT = Number(process.env.PORT ?? "8787");
 const UPSTREAM_PORT = Number(process.env.IPOLLOWORK_INTERNAL_PORT ?? "8786");
 const PASSWORD = (process.env.IPOLLOWORK_WEB_PASSWORD ?? "").trim();
 const CLIENT_TOKEN = (process.env.IPOLLOWORK_TOKEN ?? "").trim();
+const HOST_TOKEN = (process.env.IPOLLOWORK_HOST_TOKEN ?? "").trim();
+const OWNER_TOKEN_FILE = (process.env.IPOLLOWORK_WEB_OWNER_TOKEN_FILE ?? "/data/ipollowork/web-ui-owner-token.json").trim();
 const WEB_ROOT = (process.env.IPOLLOWORK_WEB_ROOT ?? "").trim();
 const SECRET = (process.env.IPOLLOWORK_WEB_SESSION_SECRET ?? "").trim()
   || crypto.createHash("sha256").update(`gate:${PASSWORD}:${CLIENT_TOKEN}`).digest("hex");
@@ -44,19 +46,70 @@ const MIME = {
   ".wasm": "application/wasm", ".txt": "text/plain; charset=utf-8", ".webmanifest": "application/manifest+json",
 };
 
-let indexHtmlCache = null;
+// The person who passed the password gate is the operator of this worker, so
+// the browser UI should act as OWNER (approvals, authorizations, env keys,
+// workspace activation are host-only routes). The client token is only
+// "collaborator" scope, so we mint a persistent owner-scoped token through the
+// host token (POST /tokens) once and hand that to the UI instead.
+let ownerTokenPromise = null;
+async function upstreamJson(method, path, body) {
+  return new Promise((resolvePromise, reject) => {
+    const req = http.request(
+      { host: "127.0.0.1", port: UPSTREAM_PORT, method, path,
+        headers: { "content-type": "application/json", "x-ipollowork-host-token": HOST_TOKEN } },
+      (res) => {
+        let data = "";
+        res.on("data", (c) => (data += c));
+        res.on("end", () => {
+          try { resolvePromise({ status: res.statusCode ?? 0, json: data ? JSON.parse(data) : null }); }
+          catch (e) { reject(e); }
+        });
+      },
+    );
+    req.on("error", reject);
+    req.end(body ? JSON.stringify(body) : undefined);
+  });
+}
+async function ensureOwnerToken() {
+  if (!HOST_TOKEN) return CLIENT_TOKEN;
+  if (ownerTokenPromise) return ownerTokenPromise;
+  ownerTokenPromise = (async () => {
+    try {
+      let cached = null;
+      try { cached = JSON.parse(await readFile(OWNER_TOKEN_FILE, "utf8")); } catch { /* none yet */ }
+      const list = await upstreamJson("GET", "/tokens");
+      const items = Array.isArray(list.json?.items) ? list.json.items : [];
+      if (cached?.token && cached?.id && items.some((t) => t.id === cached.id && t.scope === "owner")) return cached.token;
+      const created = await upstreamJson("POST", "/tokens", { scope: "owner", label: "web-ui (password gate)" });
+      if (created.status !== 201 || !created.json?.token) throw new Error(`token mint failed: ${created.status}`);
+      await mkdir(dirname(OWNER_TOKEN_FILE), { recursive: true });
+      await writeFile(OWNER_TOKEN_FILE, JSON.stringify({ id: created.json.id, token: created.json.token }), { mode: 0o600 });
+      console.log("[web-gate] minted owner token for the web UI");
+      return created.json.token;
+    } catch (err) {
+      console.error("[web-gate] owner token unavailable, falling back to client token:", err?.message ?? err);
+      ownerTokenPromise = null; // retry on next page load
+      return CLIENT_TOKEN;
+    }
+  })();
+  return ownerTokenPromise;
+}
+
+const indexHtmlCache = new Map();
 async function indexHtml() {
-  if (indexHtmlCache) return indexHtmlCache;
+  const token = await ensureOwnerToken();
+  if (indexHtmlCache.has(token)) return indexHtmlCache.get(token);
   const raw = await readFile(resolve(WEB_ROOT, "index.html"), "utf8");
   // Connect the SPA to this worker: same origin for the server API, and the
-  // worker client token. Only authenticated (cookie) users ever receive this.
-  const boot = `<script>(function(){try{var o=window.location.origin;var t=${JSON.stringify(CLIENT_TOKEN)};
+  // token. Only authenticated (cookie) users ever receive this.
+  const boot = `<script>(function(){try{var o=window.location.origin;var t=${JSON.stringify(token)};
 if(t){if(localStorage.getItem("ipollowork.server.urlOverride")!==o)localStorage.setItem("ipollowork.server.urlOverride",o);
 if(localStorage.getItem("ipollowork.server.token")!==t)localStorage.setItem("ipollowork.server.token",t);}}catch(e){}})()</script>`
     .replace(/</g, (m, i, str) => (str.startsWith("<script", i) || str.startsWith("</script", i) ? m : "\\u003c"));
   const idx = raw.toLowerCase().indexOf("<head>");
-  indexHtmlCache = idx >= 0 ? raw.slice(0, idx + 6) + boot + raw.slice(idx + 6) : boot + raw;
-  return indexHtmlCache;
+  const html = idx >= 0 ? raw.slice(0, idx + 6) + boot + raw.slice(idx + 6) : boot + raw;
+  indexHtmlCache.set(token, html);
+  return html;
 }
 
 async function serveStatic(req, res, pathname) {

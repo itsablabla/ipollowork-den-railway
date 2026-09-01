@@ -27,7 +27,7 @@ RUN git clone --depth 1 --branch "v${IPOLLOWORK_VERSION}" --filter=blob:none --s
   && git sparse-checkout set --no-cone \
        '/package.json' '/pnpm-lock.yaml' '/pnpm-workspace.yaml' '/constants.json' '/tsconfig*.json' '/patches/*' \
        '/packages/types/*' '/packages/ui/*' '/packages/install-config/*' '/packages/design-studio/*' '/packages/video-studio/*' '/packages/docs/*' \
-       '/apps/app/*' '/apps/server/*' \
+       '/apps/app/*' '/apps/server/*' '/examples/plugin-packages/*' \
   && rm -rf .git
 # Only part of the workspace is checked out; pnpm would otherwise reject
 # patches that target packages that are not present (upstream uses the same trick).
@@ -44,7 +44,8 @@ RUN cd /app/apps/app && VITE_IPOLLOWORK_DEPLOYMENT=web pnpm exec vite build \
 # Server: tsc + bundled templates + OpenCode plugin bundle (dist/opencode-plugins).
 RUN pnpm --filter ipollowork-server build \
   && test -f /app/apps/server/dist/cli.js \
-  && ls /app/apps/server/dist/opencode-plugins
+  && ls /app/apps/server/dist/opencode-plugins \
+  && test -f /app/examples/plugin-packages/github/ipollowork.plugin.json
 # Drop what the runtime does not need.
 RUN rm -rf /app/apps/app/src /app/apps/app/tests /app/apps/server/src/*.test.ts
 
@@ -99,6 +100,7 @@ ENV IPOLLOWORK_VERSION=${IPOLLOWORK_VERSION} \
     IPOLLOWORK_MANAGE_OPENCODE=1 \
     IPOLLOWORK_PORT=8787 \
     IPOLLOWORK_WEB_ROOT=/opt/ipollowork/apps/app/dist \
+    IPOLLOWORK_BUNDLED_PLUGIN_PACKAGES_DIR=/opt/ipollowork/examples/plugin-packages \
     HOME=/data/home \
     TMPDIR=/data/tmp \
     XDG_CONFIG_HOME=/data/home/.config \
