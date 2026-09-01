@@ -17,6 +17,9 @@ SIDECAR_DIR="${IPOLLOWORK_SIDECAR_DIR:-/data/sidecars}"
 APPROVAL="${IPOLLOWORK_APPROVAL_MODE:-manual}"
 CORS="${IPOLLOWORK_CORS_ORIGINS:-*}"
 HOME_DIR="${HOME:-/data/home}"
+# Template installs stage in $TMPDIR then rename() into $HOME/.config on the
+# volume; keep both on the same filesystem or rename fails with EXDEV.
+export TMPDIR="${TMPDIR:-/data/tmp}"
 WEB_ROOT="${IPOLLOWORK_WEB_ROOT:-}"
 WEB_PASSWORD="${IPOLLOWORK_WEB_PASSWORD:-}"
 
@@ -25,7 +28,7 @@ WEB_PASSWORD="${IPOLLOWORK_WEB_PASSWORD:-}"
 [ -n "${IPOLLOWORK_HOST_TOKEN:-}" ] || export IPOLLOWORK_HOST_TOKEN="${OPENWORK_HOST_TOKEN:-}"
 [ -n "$WEB_PASSWORD" ] || WEB_PASSWORD="${OPENWORK_WEB_PASSWORD:-}"
 
-mkdir -p "$WORKSPACE" "$DATA_DIR" "$SIDECAR_DIR" \
+mkdir -p "$WORKSPACE" "$DATA_DIR" "$SIDECAR_DIR" "$TMPDIR" \
   "$HOME_DIR/.config" "$HOME_DIR/.local/share" "$HOME_DIR/.cache" "$HOME_DIR/.local/state"
 
 export IPOLLOWORK_MANAGE_OPENCODE="${IPOLLOWORK_MANAGE_OPENCODE:-1}"

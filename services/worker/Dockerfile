@@ -100,6 +100,7 @@ ENV IPOLLOWORK_VERSION=${IPOLLOWORK_VERSION} \
     IPOLLOWORK_PORT=8787 \
     IPOLLOWORK_WEB_ROOT=/opt/ipollowork/apps/app/dist \
     HOME=/data/home \
+    TMPDIR=/data/tmp \
     XDG_CONFIG_HOME=/data/home/.config \
     XDG_DATA_HOME=/data/home/.local/share \
     XDG_CACHE_HOME=/data/home/.cache \
