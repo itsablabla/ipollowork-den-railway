@@ -103,14 +103,15 @@ async function serveStatic(req, res, pathname) {
   return true;
 }
 
-// Paths that belong to ipollowork-server, never to the SPA.
-const API_PREFIXES = ["/health", "/opencode", "/w/", "/workspaces", "/sessions", "/approvals", "/skills", "/plugins",
-  "/config", "/events", "/mcp", "/templates", "/work", "/files", "/artifacts", "/extensions", "/env", "/tokens",
-  "/blueprints", "/authorization", "/connect", "/reload", "/commands", "/audit", "/runtime", "/engines", "/harness"];
+// Browser navigations (GET/HEAD accepting text/html, no file extension) are
+// SPA routes -> index.html. Everything else (fetch/XHR with */* or JSON accept,
+// non-GET, SSE) is the server API. /health is handled before we get here.
 function looksLikeApi(req, pathname) {
-  if (API_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/") || pathname.startsWith(p))) return true;
+  if (req.method !== "GET" && req.method !== "HEAD") return true;
+  if (pathname.startsWith("/opencode/") || pathname === "/opencode") return true;
   const accept = req.headers.accept ?? "";
-  return req.method !== "GET" && req.method !== "HEAD" ? true : !accept.includes("text/html") && !pathname.includes(".") && pathname !== "/";
+  if (accept.includes("text/html")) return false;
+  return !pathname.includes(".");
 }
 
 function sign(payload) {
