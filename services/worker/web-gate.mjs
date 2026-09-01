@@ -101,10 +101,13 @@ async function indexHtml() {
   if (indexHtmlCache.has(token)) return indexHtmlCache.get(token);
   const raw = await readFile(resolve(WEB_ROOT, "index.html"), "utf8");
   // Connect the SPA to this worker: same origin for the server API, and the
-  // token. Only authenticated (cookie) users ever receive this.
+  // token. Only authenticated (cookie) users ever receive this. Also default the
+  // desktop-only "auto-check for updates" preference to off (browser build has
+  // no Electron updater, so it would toast an error on every Settings visit).
   const boot = `<script>(function(){try{var o=window.location.origin;var t=${JSON.stringify(token)};
 if(t){if(localStorage.getItem("ipollowork.server.urlOverride")!==o)localStorage.setItem("ipollowork.server.urlOverride",o);
-if(localStorage.getItem("ipollowork.server.token")!==t)localStorage.setItem("ipollowork.server.token",t);}}catch(e){}})()</script>`
+if(localStorage.getItem("ipollowork.server.token")!==t)localStorage.setItem("ipollowork.server.token",t);}
+if(localStorage.getItem("ipollowork.react.settings.update-auto-check")===null)localStorage.setItem("ipollowork.react.settings.update-auto-check","0");}catch(e){}})()</script>`
     .replace(/</g, (m, i, str) => (str.startsWith("<script", i) || str.startsWith("</script", i) ? m : "\\u003c"));
   const idx = raw.toLowerCase().indexOf("<head>");
   const html = idx >= 0 ? raw.slice(0, idx + 6) + boot + raw.slice(idx + 6) : boot + raw;
