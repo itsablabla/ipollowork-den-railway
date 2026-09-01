@@ -55,7 +55,6 @@ if [ -n "$WEB_ROOT" ] && [ -n "$WEB_PASSWORD" ]; then
     --port "$INTERNAL_PORT" \
     --cors "$CORS" \
     --approval "$APPROVAL" \
-    $TOKEN_ARGS \
     "$@"
 fi
 
@@ -68,5 +67,4 @@ exec ipollowork-server \
   --port "$PORT_TO_USE" \
   --cors "$CORS" \
   --approval "$APPROVAL" \
-  $TOKEN_ARGS \
   "$@"

@@ -69,10 +69,20 @@ async function serveStatic(req, res, pathname) {
   const root = resolve(WEB_ROOT);
   const target = resolve(root, rel || "index.html");
   if (target !== root && !target.startsWith(root + sep)) return false;
-  const isIndex = !rel || rel === "index.html";
+  let isIndex = !rel || rel === "index.html";
   if (!isIndex) {
     const st = await stat(target).catch(() => null);
-    if (!st?.isFile()) return false;
+    if (!st?.isFile()) {
+      // SPA deep link (e.g. /session/<id>): no file, browser navigation -> index.html
+      const accept = req.headers.accept ?? "";
+      if (accept.includes("text/html") && !extname(rel)) {
+        isIndex = true;
+      } else {
+        return false;
+      }
+    }
+  }
+  if (!isIndex) {
     const ext = extname(target).toLowerCase();
     const headers = {
       "content-type": MIME[ext] ?? "application/octet-stream",
