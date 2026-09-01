@@ -121,6 +121,10 @@ def den_api_service(with_worker: bool) -> dict:
         "DEN_SINGLE_ORG_ALLOW_PUBLIC_SIGNUP": var("false", "Keep false; owners invite members."),
         "DEN_REQUIRE_EMAIL_VERIFICATION": var("false", "Single-org installs skip verification codes by default."),
         "DEN_PASSWORD_BREACH_SCREENING_ENABLED": var("true", "Railway has egress, so keep HIBP screening on."),
+        "DEN_INITIAL_ADMIN_BOOTSTRAP_CODE": var(
+            secret(16, "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"),
+            "One-time setup code. With public signup off, the owner creates the first account at <den-web>/setup using this code. Read it from the den-api variables after deploy.",
+        ),
         "DEN_INSTALL_LINKS_GATING_ENABLED": var("false", "Every org gets desktop install links."),
         # features
         "DEN_AUTOMATIONS_ENABLED": var("true", "Scheduled automations available to desktops."),

@@ -88,7 +88,7 @@ Railway resolves `${{other-service.VAR}}` against the services that exist when a
 ## First run
 
 1. Wait for `mysql` → `den-api` → `den-web` → `worker` to go healthy. `den-api`'s start command retries the `den-db` migration until MySQL accepts connections, so a cold template deploy self-heals.
-2. Open `https://<den-web domain>` and sign in with an email listed in `DEN_SINGLE_ORG_OWNER_EMAILS` (public signup is off by default). Set that variable before deploying; it is the only required input.
+2. Create the first account at `https://<den-web domain>/setup`: enter an email from `DEN_SINGLE_ORG_OWNER_EMAILS` plus the one-time code in den-api's `DEN_INITIAL_ADMIN_BOOTSTRAP_CODE` variable (public signup is off, so `/setup` is the only way in for the first user; the flow disappears once any user exists). Set the owner email before deploying; it is the only required input.
 3. Desktop app → **Settings → Cloud → Cloud URL** = `https://<den-web domain>` → Sign in → pick the org. The desktop derives API and MCP traffic from that one URL (`<base>/api/den/v1/...`, `<base>/api/den/mcp/...`) and reads `denApiUrl` from `<base>/api/runtime-config`, which this template sets to den-api's public domain.
 4. Hosted worker: in the desktop choose **Add workspace → Connect custom remote**, paste `https://<worker domain>` plus `OPENWORK_TOKEN` (client) or `OPENWORK_HOST_TOKEN` (owner) from the worker's variables.
 5. External MCP clients (Claude Code, Codex, Cursor, OpenCode) use `https://<den-api domain>/mcp/agent` with OAuth.

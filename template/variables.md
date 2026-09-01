@@ -55,6 +55,7 @@ Healthcheck: `/health`
 | `DEN_SINGLE_ORG_ALLOW_PUBLIC_SIGNUP` | `false` | yes | Keep false; owners invite members. |
 | `DEN_REQUIRE_EMAIL_VERIFICATION` | `false` | yes | Single-org installs skip verification codes by default. |
 | `DEN_PASSWORD_BREACH_SCREENING_ENABLED` | `true` | yes | Railway has egress, so keep HIBP screening on. |
+| `DEN_INITIAL_ADMIN_BOOTSTRAP_CODE` | `${{secret(16, "ABCDEFGHJKLMNPQRSTUVWXYZ23456789")}}` | yes | One-time setup code. With public signup off, the owner creates the first account at <den-web>/setup using this code. Read it from the den-api variables after deploy. |
 | `DEN_INSTALL_LINKS_GATING_ENABLED` | `false` | yes | Every org gets desktop install links. |
 | `DEN_AUTOMATIONS_ENABLED` | `true` | yes | Scheduled automations available to desktops. |
 | `DEN_AUTOMATIONS_RUNTIME_ENABLED` | `true` | yes | Scheduler runs inside den-api. |

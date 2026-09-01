@@ -184,6 +184,11 @@
           "description": "Railway has egress, so keep HIBP screening on.",
           "isOptional": false
         },
+        "DEN_INITIAL_ADMIN_BOOTSTRAP_CODE": {
+          "defaultValue": "${{secret(16, \"ABCDEFGHJKLMNPQRSTUVWXYZ23456789\")}}",
+          "description": "One-time setup code. With public signup off, the owner creates the first account at <den-web>/setup using this code. Read it from the den-api variables after deploy.",
+          "isOptional": false
+        },
         "DEN_INSTALL_LINKS_GATING_ENABLED": {
           "defaultValue": "false",
           "description": "Every org gets desktop install links.",
