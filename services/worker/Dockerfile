@@ -36,6 +36,13 @@ RUN pnpm install --frozen-lockfile --trust-lockfile
 RUN pnpm --filter @ipollowork/types build \
   && pnpm --filter @ipollowork/ui build \
   && pnpm --filter @ipollowork/install-config build
+# Upstream quirk: the session header "Quick actions" (…) menu only has items
+# when a session is selected, so on the new-task screen it opens as an empty
+# 192x12px sliver. Show the trigger only when it has content.
+RUN f=/app/apps/app/src/react-app/domains/session/chat/session-page.tsx \
+  && test "$(grep -c '{showMainHeaderMenu ? (' "$f")" = "1" \
+  && sed -i 's/{showMainHeaderMenu ? (/{showMainHeaderMenu \&\& props.selectedSessionId ? (/' "$f" \
+  && grep -q 'showMainHeaderMenu && props.selectedSessionId ? (' "$f"
 # Official web build of the iPolloWork UI. In production web mode the app talks
 # to `${window.location.origin}` (server API + /opencode proxy), so it must be
 # served from the worker's own origin — which web-gate.mjs does.
