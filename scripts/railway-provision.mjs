@@ -207,7 +207,7 @@ if (generateTemplate) {
   console.log(`    - mysql.MYSQL_ROOT_PASSWORD      -> \${{secret(32, "a-zA-Z0-9")}}`);
   console.log(`    - den-api.BETTER_AUTH_SECRET     -> \${{secret(64, "a-zA-Z0-9")}}`);
   console.log(`    - den-api.DEN_DB_ENCRYPTION_KEY  -> \${{secret(64, "a-zA-Z0-9")}}`);
-  console.log(`    - worker.OPENWORK_TOKEN / OPENWORK_HOST_TOKEN -> \${{secret(48, "a-zA-Z0-9")}}`);
+  console.log(`    - worker.IPOLLOWORK_TOKEN / IPOLLOWORK_HOST_TOKEN / IPOLLOWORK_WEB_PASSWORD -> \${{secret(48, "a-zA-Z0-9")}}`);
   console.log(`    - den-api.DEN_SINGLE_ORG_OWNER_EMAILS -> clear the value and mark it required`);
   console.log(`  (exact alphabets are in template/variables.md; templateGenerate copies literal values, so swap them back to functions)`);
 }

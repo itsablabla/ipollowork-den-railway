@@ -1,9 +1,13 @@
 {
   "den": "0.18.40",
+  "ipollowork": "0.50.12",
+  "ipollowork_opencode": "1.18.16",
   "openwork_server": "0.18.40",
   "opencode": "1.18.18",
   "mysql": "8.4",
   "template_repo": "itsablabla/ipollowork-den-railway",
   "template_branch": "main",
-  "worker_image": "ghcr.io/itsablabla/ipollowork-worker"
+  "worker_image": "ghcr.io/itsablabla/ipollowork-worker",
+  "den_web_url": "https://den-web-production.up.railway.app",
+  "den_api_url": "https://den-api-production.up.railway.app"
 }

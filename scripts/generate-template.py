@@ -237,7 +237,7 @@ def den_web_service() -> dict:
 
 
 # ---------------------------------------------------------------------------
-# Service: worker (repo-based; there is no published worker image)
+# Service: worker — official iPolloWork server + official web UI (from source)
 # ---------------------------------------------------------------------------
 def worker_service() -> dict:
     return {
@@ -246,7 +246,7 @@ def worker_service() -> dict:
         "build": {},
         # Published by .github/workflows/publish-worker.yml. Building from the repo
         # instead: {"repo": f"https://github.com/{REPO}/tree/{REPO_BRANCH}", "rootDirectory": "services/worker"}
-        "source": {"image": f"{VERSIONS['worker_image']}:{VERSIONS['openwork_server']}"},
+        "source": {"image": f"{VERSIONS['worker_image']}:{VERSIONS['ipollowork']}"},
         "deploy": {
             "healthcheckPath": "/health",
             "healthcheckTimeout": 600,
@@ -255,16 +255,16 @@ def worker_service() -> dict:
             "requiredMountPath": "/data",
         },
         "variables": {
-            "PORT": var("8787", "openwork-server port."),
-            "OPENWORK_PORT": var("8787", "openwork-server port (mirror)."),
-            "OPENWORK_TOKEN": var(secret(48), "Client token pasted into the desktop when connecting."),
-            "OPENWORK_HOST_TOKEN": var(secret(48), "Owner/host approval token."),
-            "OPENWORK_APPROVAL_MODE": var("manual", "manual = approve writes from the desktop; auto = unattended."),
-            "OPENWORK_CORS_ORIGINS": var("*", "CORS for browser clients; tighten to your den-web origin if desired."),
-            "OPENWORK_WORKSPACE": var("/data/workspace", "Workspace path on the persistent volume."),
-            "OPENWORK_DATA_DIR": var("/data/openwork", "OpenCode + server state on the persistent volume."),
-            "OPENWORK_SIDECAR_DIR": var("/data/sidecars", "Sidecar cache on the persistent volume."),
-            "OPENWORK_LOG_FORMAT": var("json", "Structured logs for Railway log search.", optional=True),
+            "PORT": var("8787", "Public port (web UI login gate + API)."),
+            "IPOLLOWORK_TOKEN": var(secret(48), "Client token (desktop 'Connect custom remote'; auto-injected into the web UI after login)."),
+            "IPOLLOWORK_HOST_TOKEN": var(secret(48), "Owner/host approval token."),
+            "IPOLLOWORK_WEB_PASSWORD": var(secret(24), "Password for the browser workbench at https://<worker domain>/. Empty = web UI off."),
+            "IPOLLOWORK_APPROVAL_MODE": var("manual", "manual = approve writes from the UI; auto = unattended."),
+            "IPOLLOWORK_CORS_ORIGINS": var("*", "CORS for browser clients; tighten to your den-web origin if desired."),
+            "IPOLLOWORK_WORKSPACE": var("/data/workspace", "Workspace path on the persistent volume."),
+            "IPOLLOWORK_DATA_DIR": var("/data/ipollowork", "OpenCode + server state on the persistent volume."),
+            "IPOLLOWORK_SIDECAR_DIR": var("/data/sidecars", "Sidecar cache on the persistent volume."),
+            "IPOLLOWORK_LOG_FORMAT": var("json", "Structured logs for Railway log search.", optional=True),
             "ANTHROPIC_API_KEY": var("", "Model key for OpenCode (or set providers in Den and sync).", optional=True),
             "OPENAI_API_KEY": var("", "Model key for OpenCode.", optional=True),
             "OPENROUTER_API_KEY": var("", "Model key for OpenCode.", optional=True),

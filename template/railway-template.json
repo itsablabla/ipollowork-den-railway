@@ -422,7 +422,7 @@
       "icon": "https://devicons.railway.app/i/docker.svg",
       "build": {},
       "source": {
-        "image": "ghcr.io/itsablabla/ipollowork-worker:0.18.40"
+        "image": "ghcr.io/itsablabla/ipollowork-worker:0.50.12"
       },
       "deploy": {
         "healthcheckPath": "/health",
@@ -434,50 +434,50 @@
       "variables": {
         "PORT": {
           "defaultValue": "8787",
-          "description": "openwork-server port.",
+          "description": "Public port (web UI login gate + API).",
           "isOptional": false
         },
-        "OPENWORK_PORT": {
-          "defaultValue": "8787",
-          "description": "openwork-server port (mirror).",
-          "isOptional": false
-        },
-        "OPENWORK_TOKEN": {
+        "IPOLLOWORK_TOKEN": {
           "defaultValue": "${{secret(48, \"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789\")}}",
-          "description": "Client token pasted into the desktop when connecting.",
+          "description": "Client token (desktop 'Connect custom remote'; auto-injected into the web UI after login).",
           "isOptional": false
         },
-        "OPENWORK_HOST_TOKEN": {
+        "IPOLLOWORK_HOST_TOKEN": {
           "defaultValue": "${{secret(48, \"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789\")}}",
           "description": "Owner/host approval token.",
           "isOptional": false
         },
-        "OPENWORK_APPROVAL_MODE": {
-          "defaultValue": "manual",
-          "description": "manual = approve writes from the desktop; auto = unattended.",
+        "IPOLLOWORK_WEB_PASSWORD": {
+          "defaultValue": "${{secret(24, \"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789\")}}",
+          "description": "Password for the browser workbench at https://<worker domain>/. Empty = web UI off.",
           "isOptional": false
         },
-        "OPENWORK_CORS_ORIGINS": {
+        "IPOLLOWORK_APPROVAL_MODE": {
+          "defaultValue": "manual",
+          "description": "manual = approve writes from the UI; auto = unattended.",
+          "isOptional": false
+        },
+        "IPOLLOWORK_CORS_ORIGINS": {
           "defaultValue": "*",
           "description": "CORS for browser clients; tighten to your den-web origin if desired.",
           "isOptional": false
         },
-        "OPENWORK_WORKSPACE": {
+        "IPOLLOWORK_WORKSPACE": {
           "defaultValue": "/data/workspace",
           "description": "Workspace path on the persistent volume.",
           "isOptional": false
         },
-        "OPENWORK_DATA_DIR": {
-          "defaultValue": "/data/openwork",
+        "IPOLLOWORK_DATA_DIR": {
+          "defaultValue": "/data/ipollowork",
           "description": "OpenCode + server state on the persistent volume.",
           "isOptional": false
         },
-        "OPENWORK_SIDECAR_DIR": {
+        "IPOLLOWORK_SIDECAR_DIR": {
           "defaultValue": "/data/sidecars",
           "description": "Sidecar cache on the persistent volume.",
           "isOptional": false
         },
-        "OPENWORK_LOG_FORMAT": {
+        "IPOLLOWORK_LOG_FORMAT": {
           "defaultValue": "json",
           "description": "Structured logs for Railway log search.",
           "isOptional": true

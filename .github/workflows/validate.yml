@@ -58,7 +58,7 @@ jobs:
       - name: Smoke (worker binaries present)
         if: matrix.service == 'worker'
         run: |
-          docker run --rm --entrypoint sh ipollowork-den/worker:ci -c 'openwork-server --version && opencode --version && ls /opt/openwork/opencode-plugins/*.js'
+          docker run --rm --entrypoint sh ipollowork-den/worker:ci -c 'ipollowork-server --version && opencode --version && ls /opt/ipollowork/apps/server/dist/opencode-plugins/*.js && test -f /opt/ipollowork/apps/app/dist/index.html'
 
   stack:
     name: Boot the full stack with docker compose

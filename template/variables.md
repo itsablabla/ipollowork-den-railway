@@ -110,7 +110,7 @@ Healthcheck: `/api/health`
 
 ## worker
 
-Source: `ghcr.io/itsablabla/ipollowork-worker:0.18.40`  
+Source: `ghcr.io/itsablabla/ipollowork-worker:0.50.12`  
 
 Healthcheck: `/health`  
 
@@ -119,16 +119,16 @@ Volume: `/data`
 
 | Variable | Default | Required | Description |
 |---|---|---|---|
-| `PORT` | `8787` | yes | openwork-server port. |
-| `OPENWORK_PORT` | `8787` | yes | openwork-server port (mirror). |
-| `OPENWORK_TOKEN` | `${{secret(48, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")}}` | yes | Client token pasted into the desktop when connecting. |
-| `OPENWORK_HOST_TOKEN` | `${{secret(48, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")}}` | yes | Owner/host approval token. |
-| `OPENWORK_APPROVAL_MODE` | `manual` | yes | manual = approve writes from the desktop; auto = unattended. |
-| `OPENWORK_CORS_ORIGINS` | `*` | yes | CORS for browser clients; tighten to your den-web origin if desired. |
-| `OPENWORK_WORKSPACE` | `/data/workspace` | yes | Workspace path on the persistent volume. |
-| `OPENWORK_DATA_DIR` | `/data/openwork` | yes | OpenCode + server state on the persistent volume. |
-| `OPENWORK_SIDECAR_DIR` | `/data/sidecars` | yes | Sidecar cache on the persistent volume. |
-| `OPENWORK_LOG_FORMAT` | `json` | no | Structured logs for Railway log search. |
+| `PORT` | `8787` | yes | Public port (web UI login gate + API). |
+| `IPOLLOWORK_TOKEN` | `${{secret(48, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")}}` | yes | Client token (desktop 'Connect custom remote'; auto-injected into the web UI after login). |
+| `IPOLLOWORK_HOST_TOKEN` | `${{secret(48, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")}}` | yes | Owner/host approval token. |
+| `IPOLLOWORK_WEB_PASSWORD` | `${{secret(24, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")}}` | yes | Password for the browser workbench at https://<worker domain>/. Empty = web UI off. |
+| `IPOLLOWORK_APPROVAL_MODE` | `manual` | yes | manual = approve writes from the UI; auto = unattended. |
+| `IPOLLOWORK_CORS_ORIGINS` | `*` | yes | CORS for browser clients; tighten to your den-web origin if desired. |
+| `IPOLLOWORK_WORKSPACE` | `/data/workspace` | yes | Workspace path on the persistent volume. |
+| `IPOLLOWORK_DATA_DIR` | `/data/ipollowork` | yes | OpenCode + server state on the persistent volume. |
+| `IPOLLOWORK_SIDECAR_DIR` | `/data/sidecars` | yes | Sidecar cache on the persistent volume. |
+| `IPOLLOWORK_LOG_FORMAT` | `json` | no | Structured logs for Railway log search. |
 | `ANTHROPIC_API_KEY` | `` | no | Model key for OpenCode (or set providers in Den and sync). |
 | `OPENAI_API_KEY` | `` | no | Model key for OpenCode. |
 | `OPENROUTER_API_KEY` | `` | no | Model key for OpenCode. |
