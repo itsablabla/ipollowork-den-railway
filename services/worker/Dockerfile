@@ -33,6 +33,11 @@ RUN git clone --depth 1 --branch "v${IPOLLOWORK_VERSION}" --filter=blob:none --s
 # patches that target packages that are not present (upstream uses the same trick).
 RUN node -e "const fs = require('node:fs'); fs.appendFileSync('/app/pnpm-workspace.yaml', '\nallowUnusedPatches: true\n')"
 RUN pnpm install --frozen-lockfile --trust-lockfile
+# Upstream ships Chinese default column labels for the project board (shown on
+# the Overview tab even in the English UI). Use English defaults.
+RUN f=/app/packages/types/src/work-items.ts \
+  && sed -i 's/label: "待规划"/label: "Planned"/; s/label: "待执行"/label: "Ready"/; s/label: "执行中"/label: "In progress"/; s/label: "待验收"/label: "Review"/; s/label: "已完成"/label: "Done"/; s/label: "失败"/label: "Failed"/' "$f" \
+  && grep -q 'label: "In progress"' "$f" && ! grep -q '执行中' "$f"
 RUN pnpm --filter @ipollowork/types build \
   && pnpm --filter @ipollowork/ui build \
   && pnpm --filter @ipollowork/install-config build
@@ -47,6 +52,11 @@ RUN f=/app/apps/app/src/react-app/domains/session/chat/session-page.tsx \
 # which does not exist in a browser. Default to a sibling folder on the server.
 COPY patches/web-create-project.mjs /tmp/patches/web-create-project.mjs
 RUN node /tmp/patches/web-create-project.mjs /app/apps/app/src/react-app/shell/session-route.tsx
+# Browser build: the "+" New project button is Electron-only upstream; with the
+# folder fallback above it works in the browser, so always show it.
+RUN f=/app/apps/app/src/react-app/domains/session/chat/session-page.tsx \
+  && test "$(grep -c 'onOpenCreateProject={isElectronRuntime() ? openCreateProjectDialog : undefined}' "$f")" = "1" \
+  && sed -i 's/onOpenCreateProject={isElectronRuntime() ? openCreateProjectDialog : undefined}/onOpenCreateProject={openCreateProjectDialog}/' "$f"
 # Official web build of the iPolloWork UI. In production web mode the app talks
 # to `${window.location.origin}` (server API + /opencode proxy), so it must be
 # served from the worker's own origin — which web-gate.mjs does.

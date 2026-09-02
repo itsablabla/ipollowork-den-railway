@@ -52,11 +52,11 @@ const MIME = {
 // "collaborator" scope, so we mint a persistent owner-scoped token through the
 // host token (POST /tokens) once and hand that to the UI instead.
 let ownerTokenPromise = null;
-async function upstreamJson(method, path, body) {
+async function upstreamJson(method, path, body, extraHeaders = {}) {
   return new Promise((resolvePromise, reject) => {
     const req = http.request(
       { host: "127.0.0.1", port: UPSTREAM_PORT, method, path,
-        headers: { "content-type": "application/json", "x-ipollowork-host-token": HOST_TOKEN } },
+        headers: { "content-type": "application/json", "x-ipollowork-host-token": HOST_TOKEN, ...extraHeaders } },
       (res) => {
         let data = "";
         res.on("data", (c) => (data += c));
@@ -95,10 +95,32 @@ async function ensureOwnerToken() {
   return ownerTokenPromise;
 }
 
+// The app hardcodes opencode/big-pickle as the model for a fresh browser and
+// never consults the engine's configured default (`model` in opencode.json).
+// Read that default and seed the browser preference once, so new browsers
+// start on the operator's chosen model. Existing preferences are untouched.
+let defaultModelCache = { at: 0, value: null };
+async function engineDefaultModel(token) {
+  if (Date.now() - defaultModelCache.at < 60_000) return defaultModelCache.value;
+  let value = null;
+  try {
+    const res = await upstreamJson("GET", "/opencode/config", undefined, { authorization: `Bearer ${token}` });
+    const model = typeof res.json?.model === "string" ? res.json.model.trim() : "";
+    const slash = model.indexOf("/");
+    if (slash > 0) value = { providerID: model.slice(0, slash), modelID: model.slice(slash + 1) };
+  } catch (err) {
+    console.error("[web-gate] default model lookup failed:", err?.message ?? err);
+  }
+  defaultModelCache = { at: Date.now(), value };
+  return value;
+}
+
 const indexHtmlCache = new Map();
 async function indexHtml() {
   const token = await ensureOwnerToken();
-  if (indexHtmlCache.has(token)) return indexHtmlCache.get(token);
+  const defaultModel = await engineDefaultModel(token);
+  const cacheKey = `${token}|${defaultModel ? `${defaultModel.providerID}/${defaultModel.modelID}` : ""}`;
+  if (indexHtmlCache.has(cacheKey)) return indexHtmlCache.get(cacheKey);
   const raw = await readFile(resolve(WEB_ROOT, "index.html"), "utf8");
   // Connect the SPA to this worker: same origin for the server API, and the
   // token. Only authenticated (cookie) users ever receive this. Also force the
@@ -107,11 +129,12 @@ async function indexHtml() {
   const boot = `<script>(function(){try{var o=window.location.origin;var t=${JSON.stringify(token)};
 if(t){if(localStorage.getItem("ipollowork.server.urlOverride")!==o)localStorage.setItem("ipollowork.server.urlOverride",o);
 if(localStorage.getItem("ipollowork.server.token")!==t)localStorage.setItem("ipollowork.server.token",t);}
-localStorage.setItem("ipollowork.react.settings.update-auto-check","0");}catch(e){}})()</script>`
+localStorage.setItem("ipollowork.react.settings.update-auto-check","0");
+var dm=${JSON.stringify(defaultModel)};if(dm&&localStorage.getItem("ipollowork.preferences")===null)localStorage.setItem("ipollowork.preferences",JSON.stringify({model:dm}));}catch(e){}})()</script>`
     .replace(/</g, (m, i, str) => (str.startsWith("<script", i) || str.startsWith("</script", i) ? m : "\\u003c"));
   const idx = raw.toLowerCase().indexOf("<head>");
   const html = idx >= 0 ? raw.slice(0, idx + 6) + boot + raw.slice(idx + 6) : boot + raw;
-  indexHtmlCache.set(token, html);
+  indexHtmlCache.set(cacheKey, html);
   return html;
 }
 
