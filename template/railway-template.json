@@ -453,8 +453,8 @@
           "isOptional": false
         },
         "IPOLLOWORK_APPROVAL_MODE": {
-          "defaultValue": "manual",
-          "description": "manual = approve writes from the UI; auto = unattended.",
+          "defaultValue": "auto",
+          "description": "Server-level write approvals. auto = same as the official desktop app (agent permission prompts still apply in the UI). manual = every client write must be approved via the server approvals API/CLI; the app has no UI for that and writes time out after 30s.",
           "isOptional": false
         },
         "IPOLLOWORK_CORS_ORIGINS": {

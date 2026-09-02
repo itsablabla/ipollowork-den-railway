@@ -14,7 +14,9 @@ PORT_TO_USE="${PORT:-${IPOLLOWORK_PORT:-8787}}"
 WORKSPACE="${IPOLLOWORK_WORKSPACE:-/data/workspace}"
 DATA_DIR="${IPOLLOWORK_DATA_DIR:-/data/ipollowork}"
 SIDECAR_DIR="${IPOLLOWORK_SIDECAR_DIR:-/data/sidecars}"
-APPROVAL="${IPOLLOWORK_APPROVAL_MODE:-manual}"
+# auto = what the official desktop app uses for its own server; agent-level
+# permission prompts (folders, shell, tools) are still enforced by the engine.
+APPROVAL="${IPOLLOWORK_APPROVAL_MODE:-auto}"
 CORS="${IPOLLOWORK_CORS_ORIGINS:-*}"
 HOME_DIR="${HOME:-/data/home}"
 # Template installs stage in $TMPDIR then rename() into $HOME/.config on the

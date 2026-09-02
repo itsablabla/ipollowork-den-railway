@@ -123,7 +123,7 @@ Volume: `/data`
 | `IPOLLOWORK_TOKEN` | `${{secret(48, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")}}` | yes | Client token (desktop 'Connect custom remote'; auto-injected into the web UI after login). |
 | `IPOLLOWORK_HOST_TOKEN` | `${{secret(48, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")}}` | yes | Owner/host approval token. |
 | `IPOLLOWORK_WEB_PASSWORD` | `${{secret(24, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")}}` | yes | Password for the browser workbench at https://<worker domain>/. Empty = web UI off. |
-| `IPOLLOWORK_APPROVAL_MODE` | `manual` | yes | manual = approve writes from the UI; auto = unattended. |
+| `IPOLLOWORK_APPROVAL_MODE` | `auto` | yes | Server-level write approvals. auto = same as the official desktop app (agent permission prompts still apply in the UI). manual = every client write must be approved via the server approvals API/CLI; the app has no UI for that and writes time out after 30s. |
 | `IPOLLOWORK_CORS_ORIGINS` | `*` | yes | CORS for browser clients; tighten to your den-web origin if desired. |
 | `IPOLLOWORK_WORKSPACE` | `/data/workspace` | yes | Workspace path on the persistent volume. |
 | `IPOLLOWORK_DATA_DIR` | `/data/ipollowork` | yes | OpenCode + server state on the persistent volume. |

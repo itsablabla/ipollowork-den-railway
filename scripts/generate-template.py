@@ -259,7 +259,7 @@ def worker_service() -> dict:
             "IPOLLOWORK_TOKEN": var(secret(48), "Client token (desktop 'Connect custom remote'; auto-injected into the web UI after login)."),
             "IPOLLOWORK_HOST_TOKEN": var(secret(48), "Owner/host approval token."),
             "IPOLLOWORK_WEB_PASSWORD": var(secret(24), "Password for the browser workbench at https://<worker domain>/. Empty = web UI off."),
-            "IPOLLOWORK_APPROVAL_MODE": var("manual", "manual = approve writes from the UI; auto = unattended."),
+            "IPOLLOWORK_APPROVAL_MODE": var("auto", "Server-level write approvals. auto = same as the official desktop app (agent permission prompts still apply in the UI). manual = every client write must be approved via the server approvals API/CLI; the app has no UI for that and writes time out after 30s."),
             "IPOLLOWORK_CORS_ORIGINS": var("*", "CORS for browser clients; tighten to your den-web origin if desired."),
             "IPOLLOWORK_WORKSPACE": var("/data/workspace", "Workspace path on the persistent volume."),
             "IPOLLOWORK_DATA_DIR": var("/data/ipollowork", "OpenCode + server state on the persistent volume."),
