@@ -41,6 +41,21 @@ What was verified while building this template (2026-09-01), and what CI verifie
 - Fixed after first user session (all re-verified in a browser): `/workspace/*` reload returned the API's `not_found` (gate routing); "Unexpected server error" toast (template install `rename()` from `/tmp` to the volume → EXDEV; `TMPDIR` now on `/data`); "Bundled plugin package is unavailable" (official `examples/plugin-packages` now shipped, `IPOLLOWORK_BUNDLED_PLUGIN_PACKAGES_DIR`); "Invalid host token" in Authorizations/Environment (gate mints a persistent owner-scoped token for the UI and forwards the host token for cookie-authenticated requests). Templates Explore, Extensions (12 plugin packages, 3 installed by default), Authorizations and Environment all load.
 - Remaining cosmetic: the "Update check failed — Electron update checks are available only in the Electron desktop app" toast in Settings is inherent to the browser build.
 
+## Deep audit (2026-09-01, evening)
+
+Logs of all four services reviewed after the last restart: no 5xx, no unhandled errors; only expected notices (MySQL self-signed CA, Better Auth OAuth metadata warning — the metadata URL does return 200). Den probes all green (`/api/ready` configuration+upstream ok, MCP OAuth well-known, bootstrap `complete`). Worker: 4/4 MCP servers connected, providers `opencode`/`zai`/`packy`, event streams (SSE) flow through the gate, `/workspace/:id/events` is a 3–4 s poll by design.
+
+Authentication verified end to end: Den sign-in via den-web proxy + session cookie, wrong password 401, public signup 403, bootstrap code dead after first owner (409), CORS rejects foreign origins. Worker: unauthenticated API 401 / page → login, bad bearer 401, client token = `collaborator`, minted web token = `owner`, host-token routes reachable only from password-authenticated browser sessions, cookie `HttpOnly; Secure; SameSite=Lax`. Approval mode set to `auto` (the official desktop's setting; `manual` has no UI and made writes time out after 30 s).
+
+Fixed during the audit (all re-verified in a browser):
+- Gate routing now follows the server route table: API URLs opened as a browser navigation (e.g. `files/raw`, artifacts) are proxied instead of receiving the app shell; unit checks in CI.
+- Cookie `Secure` flag only over https (local docker-compose logins would otherwise loop).
+- Fresh browsers start on the engine's configured default model (upstream hardcodes `opencode/big-pickle` and ignores `model` in config).
+- "New project" button is Electron-only upstream; now shown in the browser, with a server-side folder fallback. Create + remove verified.
+- Project board default column labels were Chinese on the English Overview tab; English defaults patched into `@ipollowork/types` at build time.
+
+Known, not changed: `/status` exposes the loopback OpenCode engine's basic-auth credentials to any valid client token (upstream; the engine is not reachable from outside); the "Installed" plugin row shows icons only (upstream design); `DEN_INITIAL_ADMIN_BOOTSTRAP_CODE` can be removed from den-api now that setup is complete.
+
 ## Known gaps
 
 - `openwork-server@0.18.40` on npm is an x86-64 Linux binary only; the worker image is published for `linux/amd64` (an arm64 build attempt fails with "Missing runtime dependency").
