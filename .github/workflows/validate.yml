@@ -55,6 +55,9 @@ jobs:
           push: false
           load: true
           tags: ipollowork-den/${{ matrix.service }}:ci
+      - name: Gate routing unit checks
+        if: matrix.service == 'worker'
+        run: node services/worker/tests/gate-routing.test.mjs && node --check services/worker/web-gate.mjs
       - name: Smoke (worker binaries present)
         if: matrix.service == 'worker'
         run: |

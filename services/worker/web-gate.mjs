@@ -159,12 +159,27 @@ async function serveStatic(req, res, pathname) {
   return true;
 }
 
-// Browser navigations (GET/HEAD accepting text/html, no file extension) are
-// SPA routes -> index.html. Everything else (fetch/XHR with */* or JSON accept,
-// non-GET, SSE) is the server API. /health is handled before we get here.
+// Routing between the SPA and ipollowork-server, derived from the server's
+// route table (apps/server/src/routes/*.ts + the /opencode proxy) so that a
+// browser navigation to an API URL (e.g. opening /workspace/<id>/files/raw?path=
+// in a new tab) is proxied, while app routes (/workspace/<id>/session/...,
+// /workspace/<id>/settings/..., /settings/..., /help, ...) get index.html.
+const API_TOP = new Set(["approvals", "authorization-services", "capabilities", "dev", "engine-tools", "env", "experimental",
+  "files", "health", "hub", "mcp", "opencode", "runtime", "status", "tokens", "ui", "voice", "w", "whoami", "work-items", "workspaces"]);
+const API_WORKSPACE_SEGMENTS = new Set(["artifacts", "audit", "authorized-folders", "blueprint", "commands", "config",
+  "desktop-cloud-sync", "engine", "events", "export", "extensions", "files", "hyperframes-catalog", "import", "inbox", "mcp",
+  "opencode", "opencode-config", "plugin-packages", "plugin-workshop", "project-builder-sessions", "project-sessions",
+  "runtime-config", "sessions", "skills", "template-sessions", "templates", "work-board", "work-items"]);
+function isApiPath(pathname) {
+  const parts = pathname.split("/").filter(Boolean);
+  if (parts.length === 0) return false;
+  if (API_TOP.has(parts[0])) return true;
+  if (parts[0] === "workspace") return parts.length >= 3 && API_WORKSPACE_SEGMENTS.has(parts[2]);
+  return false;
+}
 function looksLikeApi(req, pathname) {
   if (req.method !== "GET" && req.method !== "HEAD") return true;
-  if (pathname.startsWith("/opencode/") || pathname === "/opencode") return true;
+  if (isApiPath(pathname)) return true;
   const accept = req.headers.accept ?? "";
   if (accept.includes("text/html")) return false;
   return !pathname.includes(".");
@@ -190,6 +205,14 @@ function cookieValid(value) {
   if (expected.length !== given.length) return false;
   if (!crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(given))) return false;
   return Number(parts[0]) > Math.floor(Date.now() / 1000);
+}
+
+// Mark the cookie Secure only when the client actually used https (Railway
+// terminates TLS and sets x-forwarded-proto); plain-http docker-compose runs
+// would otherwise never receive the cookie and loop on the login page.
+function secureAttr(req) {
+  const proto = (req.headers["x-forwarded-proto"] ?? "").split(",")[0].trim();
+  return proto === "https" || req.socket?.encrypted ? " Secure;" : "";
 }
 
 function readCookie(req) {
@@ -307,7 +330,7 @@ const server = http.createServer(async (req, res) => {
       res.end(loginPage("Incorrect password."));
       return;
     }
-    const cookie = `${COOKIE}=${encodeURIComponent(issueCookie())}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${SESSION_TTL_S}`;
+    const cookie = `${COOKIE}=${encodeURIComponent(issueCookie())}; Path=/; HttpOnly;${secureAttr(req)} SameSite=Lax; Max-Age=${SESSION_TTL_S}`;
     res.writeHead(303, { location: "/", "set-cookie": cookie, "cache-control": "no-store" });
     res.end();
     return;
@@ -316,7 +339,7 @@ const server = http.createServer(async (req, res) => {
   if (url.pathname === "/__gate/logout") {
     res.writeHead(303, {
       location: "/",
-      "set-cookie": `${COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`,
+      "set-cookie": `${COOKIE}=; Path=/; HttpOnly;${secureAttr(req)} SameSite=Lax; Max-Age=0`,
       "cache-control": "no-store",
     });
     res.end();
