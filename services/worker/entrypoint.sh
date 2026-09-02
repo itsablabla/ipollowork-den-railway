@@ -38,6 +38,20 @@ export IPOLLOWORK_LOG_FORMAT="${IPOLLOWORK_LOG_FORMAT:-json}"
 echo "[worker] ipollowork-server $(ipollowork-server --version 2>/dev/null || echo unknown) / opencode $("$IPOLLOWORK_OPENCODE_BIN" --version 2>/dev/null || echo unknown)"
 echo "[worker] workspace=$WORKSPACE approval=$APPROVAL port=$PORT_TO_USE"
 
+# Projects added from the UI are persisted by the server in server.json, but a
+# --workspace flag on the command line overrides that list on every start. Only
+# seed the default project on first boot; afterwards let server.json rule.
+SERVER_CONFIG="${IPOLLOWORK_SERVER_CONFIG:-$HOME_DIR/.config/ipollowork/server.json}"
+export IPOLLOWORK_SERVER_CONFIG="$SERVER_CONFIG"
+WORKSPACE_ARGS="--workspace $WORKSPACE"
+if [ -f "$SERVER_CONFIG" ] && node -e '
+  const c = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
+  process.exit(Array.isArray(c.workspaces) && c.workspaces.length > 0 ? 0 : 1);
+' "$SERVER_CONFIG" 2>/dev/null; then
+  echo "[worker] using persisted project list from $SERVER_CONFIG"
+  WORKSPACE_ARGS=""
+fi
+
 if [ -n "$WEB_ROOT" ] && [ ! -f "$WEB_ROOT/index.html" ]; then
   echo "[worker] IPOLLOWORK_WEB_ROOT=$WEB_ROOT has no index.html; web UI disabled" >&2
   WEB_ROOT=""
@@ -52,8 +66,9 @@ if [ -n "$WEB_ROOT" ] && [ -n "$WEB_PASSWORD" ]; then
     IPOLLOWORK_WEB_ROOT="$WEB_ROOT" node /opt/ipollowork/web-gate.mjs &
   GATE_PID=$!
   trap 'kill "$GATE_PID" 2>/dev/null' EXIT INT TERM
+  # shellcheck disable=SC2086
   exec ipollowork-server \
-    --workspace "$WORKSPACE" \
+    $WORKSPACE_ARGS \
     --host 127.0.0.1 \
     --port "$INTERNAL_PORT" \
     --cors "$CORS" \
@@ -64,8 +79,9 @@ fi
 if [ -n "$WEB_ROOT" ]; then
   echo "[worker] IPOLLOWORK_WEB_PASSWORD is not set; the web UI stays disabled on this public worker" >&2
 fi
+# shellcheck disable=SC2086
 exec ipollowork-server \
-  --workspace "$WORKSPACE" \
+  $WORKSPACE_ARGS \
   --host 0.0.0.0 \
   --port "$PORT_TO_USE" \
   --cors "$CORS" \
