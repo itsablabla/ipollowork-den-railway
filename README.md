@@ -1,6 +1,8 @@
 # iPolloWork / Openwork Den on Railway
 
-A Railway template for the full **cloud control plane** behind the iPolloWork and Openwork desktop apps: identity, organizations, RBAC, shared skills/plugins/MCP connections, shared LLM providers, scheduled automations, and a hosted agent worker your desktop can open as a "Shared Workspace".
+A Railway template for running iPolloWork in the cloud: the **official iPolloWork agent server and browser workbench** (built from the upstream source at a pinned release, behind a password login) plus the **Openwork Den control plane** behind it (identity, organizations, RBAC, shared skills/plugins/MCP connections, shared LLM providers, scheduled automations).
+
+**Day-to-day you use one URL:** `https://<worker domain>/` → enter the workbench password → the full iPolloWork UI (Work / Code / Create / Video, Projects, Templates, Schedule, Extensions, Plugin Workshop, Settings). Den is the admin plane for members and shared resources.
 
 > **Why this is Openwork Den.** iPolloWork is a source-available fork of [Openwork](https://github.com/different-ai/openwork). Its cloud docs point at `ipollowork-ee` charts and `app.ipolloworklabs.com`, neither of which exists. The actual control plane (called **Den**) lives in Openwork's `ee/` directory and ships as public images on GHCR. This template deploys those images. Everything outside `ee/` is MIT; `ee/` is under the Openwork EE License, which allows production use for organizations with **up to 5 users** without a subscription (Enterprise features such as SSO/SCIM, desktop policies, and white-labeling excluded). See [Licensing](#licensing).
 
@@ -14,7 +16,8 @@ A Railway template for the full **cloud control plane** behind the iPolloWork an
                  │                                                             │                                  │
  MCP clients ───►│  den-api /mcp/agent  (OAuth + PKCE)                         └── stub provisioner ──► worker    │
  (Claude Code,   │                                                                                    (:8787,     │
-  Codex, Cursor) │  worker = openwork-server + managed OpenCode engine, /data volume                   public)    │
+  Codex, Cursor) │  worker = login gate + iPolloWork web UI + ipollowork-server + OpenCode, /data volume  public)    │
+ Browser ───────►│  worker :8787  (password → official iPolloWork workbench)                                        │
                  └────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -23,10 +26,10 @@ A Railway template for the full **cloud control plane** behind the iPolloWork an
 | `mysql` | `mysql:8.4` | 3306 | `/var/lib/mysql` | no | Den control-plane database (MySQL only; Postgres is not supported) |
 | `den-api` | `ghcr.io/different-ai/openwork-den-api:0.18.40` | 8788 | – | yes | Control plane: Better Auth, orgs, members, RBAC, workers, automations, MCP OAuth |
 | `den-web` | `ghcr.io/different-ai/openwork-den-web:0.18.40` | 3005 | – | yes | Dashboard + sign-in + the `/api/den/*` proxy the desktop uses |
-| `worker` | `ghcr.io/itsablabla/ipollowork-worker:0.18.40` (built from `services/worker` by CI) | 8787 | `/data` | yes | Hosted agent runtime: `openwork-server` 0.18.40 + OpenCode 1.18.18 + the OpenWork plugin bundle built from source, connect from the desktop |
+| `worker` | `ghcr.io/itsablabla/ipollowork-worker:0.50.12` (built from `services/worker` by CI) | 8787 | `/data` | yes | Official iPolloWork stack from source (`Devin-AXIS/iPolloWork@v0.50.12`): `ipollowork-server` (Bun) + OpenCode 1.18.16 + plugin bundle + 12 bundled plugin packages + the official web UI, fronted by `web-gate.mjs` (password login, static hosting, API proxy) |
 | `inference` (optional) | `ghcr.io/different-ai/openwork-inference:0.18.40` | 8791 | – | no | Metered OpenRouter proxy; needs OpenRouter management key + Stripe |
 
-Versions are pinned in [`versions.json`](versions.json). The worker is the only service built from source because no worker image is published upstream, and the npm package does not ship the OpenCode plugin bundle the server expects, so the Dockerfile builds it from the matching git tag. See [`VALIDATION.md`](VALIDATION.md) for what was exercised.
+Versions are pinned in [`versions.json`](versions.json). The worker is built from source because iPolloWork publishes neither its server nor its web app as packages or images. The Dockerfile applies a handful of small build-time patches for the browser build (listed under [Worker: what is patched](#worker-what-is-patched-and-why)). See [`VALIDATION.md`](VALIDATION.md) for everything that was exercised and every bug found and fixed on the live deployment.
 
 ## Deploy
 
@@ -72,7 +75,7 @@ Provisioned from this repo with `scripts/railway-provision.mjs` into Railway wor
 |---|---|---|
 | den-web | https://den-web-production.up.railway.app | `/api/health` and `/api/ready` → ok (configuration + upstream) |
 | den-api | https://den-api-production.up.railway.app | `/health` → ok 0.18.40; `/.well-known/oauth-protected-resource` advertises `/mcp` |
-| worker | https://worker-production-3eb3.up.railway.app | `/health` → ok 0.18.40 / OpenCode 1.18.18 |
+| worker | https://worker-production-3eb3.up.railway.app | `/` → password login → iPolloWork workbench; `/health` → ok 0.50.12 / OpenCode 1.18.16 |
 | mysql | private (`mysql.railway.internal:3306`) | migrations applied by den-api |
 
 Project: https://railway.com/project/ca86ac98-c940-47a8-be16-ca8e06782fcf. Generated template: code `ixuwbi` → https://railway.com/deploy/ixuwbi (unpublished; see below).
@@ -107,15 +110,33 @@ Railway resolves `${{other-service.VAR}}` against the services that exist when a
 ## Configuration notes
 
 - **Public URLs.** `DEN_BASE_URL` (den-web origin) drives Better Auth, CORS, trusted origins, and MCP defaults. `DEN_API_PUBLIC_URL` is set explicitly because Den otherwise derives `api.<web-host>`, which does not exist on Railway domains.
-- **API origin.** `DEN_API_BASE` on den-web must be the public den-api origin: in 0.18.40 den-web's `/api/den/*` route answers browsers with a 307 redirect to that origin, so a private `railway.internal` value breaks the setup page and every dashboard call (the docs describe it as server-only; the code disagrees). `DEN_AUTH_FALLBACK_BASE` stays on the private network. den-api listens on all interfaces (Node dual-stack); den-web is started with `--hostname ::`. The worker keeps `--host 0.0.0.0` because `openwork-server` derives its internal engine URL from the bind host and does not handle `::`.
+- **API origin.** `DEN_API_BASE` on den-web must be the public den-api origin: in 0.18.40 den-web's `/api/den/*` route answers browsers with a 307 redirect to that origin, so a private `railway.internal` value breaks the setup page and every dashboard call (the docs describe it as server-only; the code disagrees). `DEN_AUTH_FALLBACK_BASE` stays on the private network. den-api listens on all interfaces (Node dual-stack); den-web is started with `--hostname ::`. The worker's server binds `127.0.0.1` behind the gate (or `0.0.0.0` without it) because it derives its internal engine URL from the bind host and does not handle `::`.
+- **Worker approval mode.** `IPOLLOWORK_APPROVAL_MODE=auto`, the same setting the official desktop uses for its own server. `manual` makes every client write wait for a separate host process to approve via the approvals API; the app has no UI for that, so writes (including "Allow once" on folder prompts) time out after 30 s. Agent-level permission prompts (folders outside the project, shell, tools) are still enforced by the engine and shown in the UI.
+- **Worker projects.** Projects added in the UI are persisted by the server in `server.json` on the volume. The entrypoint passes `--workspace` only on first boot; a `--workspace` flag on every start would override the saved list (that bug existed in an earlier revision).
+- **Worker engine config scope.** `opencode.json` in a project folder is project-scoped. Put providers, MCP servers and the default `model` in the **global** config (`$XDG_CONFIG_HOME/opencode/opencode.jsonc`, `/data/home/.config/opencode/`) so every project gets them; the UI's Settings → AI Providers / Extensions do this for you, or use `POST /workspace/:id/opencode-config` with `scope: "global"`. Global config is read at engine start; restart the worker after editing it by hand.
+- **Temp directory.** `TMPDIR=/data/tmp`: the server stages template and plugin installs in the temp dir and `rename()`s them into `$HOME/.config`; if temp is on the container filesystem that fails with `EXDEV` ("Unexpected server error" in the UI).
 - **Volumes.** Railway allows one volume per service, so the worker keeps workspace, OpenCode state, sidecars, and `$HOME` under `/data`. `RAILWAY_RUN_UID=0` avoids permission issues on the volume.
 - **Email.** Invitations and password resets need `RESEND_API_KEY` (plus an `EMAIL_FROM` on a domain verified in Resend) or `SMTP_*`. Verified end to end on the live deployment: a password-reset request produced a delivered "Reset your OpenWork password" email via Resend.
-- **Model keys for the worker.** Set `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, or `OPENROUTER_API_KEY` on the worker, or configure shared LLM providers in Den (`Dashboard → LLM providers`) and let the desktop/worker sync them. For GLM (as in the iPolloWork screenshot), add Z.ai as a custom OpenAI-compatible provider in Den.
+- **Model keys for the worker.** Use the workbench: Settings → AI Providers → Connect provider (Anthropic, OpenAI, Zhipu/Z.ai for GLM, DeepSeek, OpenRouter, 170+ more), or set `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` / `OPENROUTER_API_KEY` on the worker service. Keys written into `opencode.json` by an agent are stored in plaintext on the volume; Settings → Environment is the server-managed alternative.
 - **Per-user sandboxes.** Switch `PROVISIONER_MODE` to `daytona`, set `DAYTONA_API_KEY` and `DAYTONA_SNAPSHOT` (build a snapshot from `services/worker`), and Den will create an isolated sandbox per "Add workspace" instead of using the shared worker.
 - **Private MCP servers.** Den blocks private/reserved addresses (SSRF guard). Set `DEN_ALLOW_PRIVATE_MCP_URLS=1` only if your MCP servers are on a network Den can reach and you trust everyone who can add MCP connections.
 - **Feature flags.** `DEN_AUTOMATIONS_*=true` enables scheduled automations; `DEN_DASHBOARDS_ENABLED=true` enables the org dashboard; `DEN_OPENWORK_WEB_ENABLED` stays `false` (browser client is an Enterprise feature and needs Stripe).
 - **Upgrades.** Bump `den` in `versions.json`, run `python3 scripts/generate-template.py`, redeploy. den-api's start command re-runs migrations on every boot; they are idempotent.
 - **Backups.** Enable Railway volume backups on `mysql` and `worker`. Den also stores secrets encrypted with `DEN_DB_ENCRYPTION_KEY`; losing that key makes provider secrets and SSO config unreadable, so keep it in 1Password.
+
+## Worker: what is patched and why
+
+All patches are applied at image build time to the official `v0.50.12` sources (see `services/worker/Dockerfile`, `services/worker/patches/`). None change agent behavior; they make the browser build usable on a public host.
+
+| Patch | Reason |
+|---|---|
+| `web-gate.mjs` in front of the server | `ipollowork-server` has no login and does not serve the SPA. The gate adds a password login (signed `HttpOnly` cookie), serves the official web build, injects the connection (same origin + an owner-scoped token minted through the host token), forwards the host token for password-authenticated requests (needed by `/env/*`, `/authorization-services/*`), proxies API/SSE/upgrades, and routes browser navigations vs API URLs using the server's route table. |
+| Default model seeding | The app hardcodes `opencode/big-pickle` for new browsers and ignores the engine's configured `model`; the gate seeds the browser preference from `/opencode/config` once. |
+| Desktop update check off | The browser build has no Electron updater; the preference would toast "Update check failed" on every Settings visit. |
+| `web-create-project.mjs` + always show "+ New project" | Upstream requires a folder from the desktop's native picker and hides the button outside Electron; the browser build now creates projects as sibling folders on the server. |
+| Hide empty "Quick actions" menu | All items require a selected session; on the new-task screen the menu rendered as an empty box. |
+| English project-board defaults | Upstream default column labels are Chinese and show on the English Overview tab. |
+| Bundled plugin packages | The 12 official packages live in `examples/plugin-packages`; shipped and pointed to via `IPOLLOWORK_BUNDLED_PLUGIN_PACKAGES_DIR`. |
 
 ## Local parity
 
@@ -136,6 +157,8 @@ template/variables.md                      generated variable reference
 scripts/generate-template.py               single source of truth → the JSON above
 scripts/railway-provision.mjs              GraphQL provisioning + templateGenerate
 scripts/railway-cli-deploy.sh              Railway CLI alternative
+services/worker/                           official iPolloWork stack: Dockerfile, entrypoint.sh, web-gate.mjs, patches/, tests/
+services/worker-openwork/                  earlier Openwork-based worker, kept for reference (not published)
 services/<name>/Dockerfile + railway.json  repo-based service definitions (monorepo root directories)
 docker-compose.yml, .env.example           local parity stack
 versions.json                              pinned versions and template repo
@@ -144,8 +167,8 @@ versions.json                              pinned versions and template repo
 ## Licensing
 
 - Den images (`ee/`) are under the [Openwork EE License](https://github.com/different-ai/openwork/blob/dev/ee/LICENSE): free in production for up to 5 users (Enterprise features excluded), 30-day evaluation at any size, and each release converts to MIT two years after publication. Team is $20/seat/month up to 100 users; Enterprise is $50/user/month ([pricing](https://github.com/different-ai/openwork/blob/dev/packages/docs/start-here/pricing-and-licensing.mdx)).
-- `openwork-server`, OpenCode, and the desktop app are MIT.
-- The iPolloWork desktop itself is under the iPolloWork Source Available License 1.0 (free for fewer than 3 users; hosting or customer-facing use needs written authorization). Connecting it to a self-hosted Den is untested; the Openwork desktop is the supported client.
+- Openwork's `openwork-server`, OpenCode, and the Openwork desktop app are MIT.
+- iPolloWork (server, web UI, plugin packages — everything in the worker image) is under the iPolloWork Source Available License 1.0 (free for fewer than 3 users; hosting for others or customer-facing use needs written authorization from the authors). This template targets personal/small-team self-hosting; check the license before offering the workbench to customers.
 - This template's own files are MIT.
 
 ## Sources
