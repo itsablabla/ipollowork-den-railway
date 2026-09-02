@@ -43,6 +43,10 @@ RUN f=/app/apps/app/src/react-app/domains/session/chat/session-page.tsx \
   && test "$(grep -c '{showMainHeaderMenu ? (' "$f")" = "1" \
   && sed -i 's/{showMainHeaderMenu ? (/{showMainHeaderMenu \&\& props.selectedSessionId ? (/' "$f" \
   && grep -q 'showMainHeaderMenu && props.selectedSessionId ? (' "$f"
+# Browser build: "New project" needs a folder from the desktop's native picker,
+# which does not exist in a browser. Default to a sibling folder on the server.
+COPY patches/web-create-project.mjs /tmp/patches/web-create-project.mjs
+RUN node /tmp/patches/web-create-project.mjs /app/apps/app/src/react-app/shell/session-route.tsx
 # Official web build of the iPolloWork UI. In production web mode the app talks
 # to `${window.location.origin}` (server API + /opencode proxy), so it must be
 # served from the worker's own origin — which web-gate.mjs does.
